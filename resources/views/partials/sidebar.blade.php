@@ -10,14 +10,10 @@
 
 <aside class="ta-sidebar" :class="{ 'is-open': mobileSidebarOpen }" aria-label="Menú principal">
     <div class="ta-sidebar-header">
-        <a class="ta-brand-link" href="{{ $homeHref }}">
-            <span class="ta-brand-icon">
-                <i data-lucide="folder-lock" class="ta-icon"></i>
-            </span>
-            <span class="ta-brand-text-wrap d-inline-flex align-items-center gap-2">
-                <span class="ta-brand-name">SDR</span>
-                <span class="ta-brand-tag">v2</span>
-            </span>
+        <a class="ta-brand-link w-100 justify-content-center px-2" href="{{ $homeHref }}" style="max-width: 100%;" title="SDR v2">
+            <img src="{{ asset('images/brand/logo-version-azul.png') }}"
+                 alt="SDR v2"
+                 style="max-height: 38px; max-width: 100%; width: auto; height: auto; object-fit: contain; display: block;">
         </a>
     </div>
 
