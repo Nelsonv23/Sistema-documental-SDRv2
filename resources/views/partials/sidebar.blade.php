@@ -3,6 +3,10 @@
     $foldersHref = \Illuminate\Support\Facades\Route::has('folders.index') ? route('folders.index') : $homeHref;
     $searchHref = \Illuminate\Support\Facades\Route::has('documents.search') ? route('documents.search') : '#';
     $profileHref = \Illuminate\Support\Facades\Route::has('profile.edit') ? route('profile.edit') : '#';
+    $notificationsHref = \Illuminate\Support\Facades\Route::has('notifications.index') ? route('notifications.index') : '#';
+    $unreadNotificationsCount = $unreadNotificationsCount ?? (auth()->check()
+        ? \App\Models\Notification::query()->where('user_id', auth()->id())->whereNull('read_at')->count()
+        : 0);
     $usersHref = \Illuminate\Support\Facades\Route::has('admin.users.index') ? route('admin.users.index') : '#';
     $trashHref = \Illuminate\Support\Facades\Route::has('admin.trash.index') ? route('admin.trash.index') : '#';
     $auditHref = \Illuminate\Support\Facades\Route::has('admin.audit-logs.index') ? route('admin.audit-logs.index') : '#';
@@ -60,6 +64,18 @@
         @endrole
 
         <div class="ta-nav-group-label">Cuenta</div>
+
+        <a class="ta-nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}"
+           href="{{ $notificationsHref }}"
+           title="Notificaciones">
+            <i data-lucide="bell" class="ta-icon"></i>
+            <span class="ta-nav-link-text d-inline-flex align-items-center justify-content-between flex-grow-1 gap-2">
+                <span>Notificaciones</span>
+                @if ($unreadNotificationsCount > 0)
+                    <span class="ta-sidebar-badge">{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
+                @endif
+            </span>
+        </a>
 
         <a class="ta-nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}"
            href="{{ $profileHref }}"

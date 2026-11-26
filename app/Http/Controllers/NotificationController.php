@@ -22,8 +22,26 @@ class NotificationController extends Controller
             ->whereNull('read_at')
             ->count();
 
+        $recent = Notification::query()
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'type', 'title', 'body', 'data', 'read_at', 'created_at'])
+            ->map(static fn (Notification $notification): array => [
+                'id' => $notification->id,
+                'title' => $notification->title,
+                'body' => $notification->body,
+                'url' => $notification->data['url'] ?? route('notifications.index'),
+                'open_url' => route('notifications.open', $notification),
+                'is_unread' => $notification->read_at === null,
+                'time_ago' => $notification->created_at?->diffForHumans() ?? '',
+            ])
+            ->all();
+
         return response()->json([
             'unread_count' => $unreadCount,
+            'notifications' => $recent,
         ]);
     }
 
@@ -32,12 +50,30 @@ class NotificationController extends Controller
         $notifications = Notification::query()
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
 
         return view('notifications.index', [
             'notifications' => $notifications,
         ]);
+    }
+
+    public function open(Request $request, Notification $notification): RedirectResponse
+    {
+        if ((int) $notification->user_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ($notification->read_at === null) {
+            $notification->forceFill([
+                'read_at' => now(),
+            ])->save();
+        }
+
+        $targetUrl = $notification->data['url'] ?? route('notifications.index');
+
+        return redirect()->to($targetUrl);
     }
 
     public function markRead(Request $request): RedirectResponse|JsonResponse

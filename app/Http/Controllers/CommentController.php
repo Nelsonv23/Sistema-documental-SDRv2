@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Document;
 use App\Models\Notification;
+use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\FolderPermissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +15,7 @@ class CommentController extends Controller
 {
     public function __construct(
         private readonly AuditLogger $audit,
+        private readonly FolderPermissionService $permissions,
     ) {}
 
     public function store(Request $request, Document $document): RedirectResponse
@@ -24,6 +27,7 @@ class CommentController extends Controller
         ]);
 
         $user = $request->user();
+        $document->loadMissing('folder');
 
         $comment = Comment::create([
             'document_id' => $document->id,
@@ -36,18 +40,36 @@ class CommentController extends Controller
             'document_name' => $document->name,
         ], $user);
 
-        if ($document->created_by && (int) $document->created_by !== (int) $user->id) {
-            Notification::create([
-                'user_id' => $document->created_by,
-                'type' => 'comment.created',
-                'title' => 'Nuevo comentario en tu documento',
-                'body' => "{$user->name} comentó en \"{$document->name}\".",
-                'data' => [
-                    'document_id' => $document->id,
-                    'comment_id' => $comment->id,
-                    'url' => route('documents.show', $document),
-                ],
-            ]);
+        if ($document->folder !== null) {
+            $recipients = User::query()
+                ->active()
+                ->whereKeyNot($user->id)
+                ->with('roles')
+                ->get();
+
+            $targetUrl = route('documents.show', $document).'#comments';
+
+            foreach ($recipients as $recipient) {
+                if (! $this->permissions->canAccess($recipient, $document->folder)) {
+                    continue;
+                }
+
+                $isOwner = $document->created_by !== null && (int) $recipient->id === (int) $document->created_by;
+
+                Notification::create([
+                    'user_id' => $recipient->id,
+                    'type' => 'comment.created',
+                    'title' => $isOwner ? 'Nuevo comentario en tu documento' : 'Nuevo comentario en un documento',
+                    'body' => "{$user->name} comentó en \"{$document->name}\".",
+                    'data' => [
+                        'document_id' => $document->id,
+                        'document_name' => $document->name,
+                        'comment_id' => $comment->id,
+                        'actor_name' => $user->name,
+                        'url' => $targetUrl,
+                    ],
+                ]);
+            }
         }
 
         return redirect()

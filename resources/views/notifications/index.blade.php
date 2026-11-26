@@ -61,7 +61,7 @@
 
                             <div class="d-flex gap-2">
                                 @if (! empty($notification->data['url']))
-                                    <a href="{{ $notification->data['url'] }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ route('notifications.open', $notification) }}" class="btn btn-sm btn-outline-primary">
                                         Abrir
                                     </a>
                                 @endif

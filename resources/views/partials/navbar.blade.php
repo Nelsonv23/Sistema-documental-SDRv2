@@ -22,6 +22,27 @@
     $initialUnreadCount = $currentUser
         ? \App\Models\Notification::query()->where('user_id', $currentUser->id)->whereNull('read_at')->count()
         : 0;
+    $initialNotifications = $currentUser
+        ? \App\Models\Notification::query()
+            ->where('user_id', $currentUser->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'type', 'title', 'body', 'data', 'read_at', 'created_at'])
+            ->map(static fn (\App\Models\Notification $n): array => [
+                'id' => $n->id,
+                'title' => $n->title,
+                'body' => $n->body,
+                'url' => $n->data['url'] ?? route('notifications.index'),
+                'open_url' => \Illuminate\Support\Facades\Route::has('notifications.open')
+                    ? route('notifications.open', $n)
+                    : ($n->data['url'] ?? route('notifications.index')),
+                'is_unread' => $n->read_at === null,
+                'time_ago' => $n->created_at?->diffForHumans() ?? '',
+            ])
+            ->values()
+            ->all()
+        : [];
 @endphp
 
 <header class="ta-header">
@@ -68,7 +89,7 @@
 
         {{-- Campana de notificaciones --}}
         <div class="dropdown"
-             x-data="sdrNotificationBell(@js($unreadCountUrl), {{ $initialUnreadCount }})"
+             x-data="sdrNotificationBell(@js($unreadCountUrl), {{ $initialUnreadCount }}, @js($initialNotifications))"
              x-init="init()">
             <button type="button"
                     class="ta-circle-btn"
@@ -77,32 +98,46 @@
                     aria-expanded="false"
                     aria-label="Notificaciones">
                 <i data-lucide="bell" class="ta-icon"></i>
-                <span x-cloak x-show="unreadCount > 0" class="ta-notif-dot"></span>
+                <span x-cloak
+                      x-show="unreadCount > 0"
+                      class="ta-notif-badge"
+                      x-text="unreadCount > 99 ? '99+' : unreadCount"></span>
             </button>
 
-            <div class="dropdown-menu dropdown-menu-end ta-dropdown-menu" aria-labelledby="notificationDropdown">
+            <div class="dropdown-menu dropdown-menu-end ta-dropdown-menu ta-notif-dropdown" aria-labelledby="notificationDropdown">
                 <div class="ta-dropdown-header d-flex justify-content-between align-items-center">
                     <span class="fw-semibold" style="color: var(--ta-text-primary);">Notificaciones</span>
                     <span x-cloak x-show="unreadCount > 0" class="ta-badge ta-badge-brand" x-text="unreadCount + ' nuevas'"></span>
                 </div>
 
-                <div class="p-3 text-center small" style="color: var(--ta-text-muted);">
-                    <template x-if="unreadCount === 0">
-                        <div class="py-2">
+                <div style="max-height: 320px; overflow-y: auto;">
+                    <template x-if="notifications.length === 0">
+                        <div class="p-4 text-center small" style="color: var(--ta-text-muted);">
                             <i data-lucide="bell-off" class="ta-icon d-block mx-auto mb-2"></i>
-                            <span>No tienes notificaciones pendientes.</span>
+                            <span>No tienes notificaciones recientes.</span>
                         </div>
                     </template>
-                    <template x-if="unreadCount > 0">
-                        <div class="py-1">
-                            <span>Tienes <strong style="color: var(--ta-text-primary);" x-text="unreadCount"></strong> sin leer.</span>
-                        </div>
+
+                    <template x-for="item in notifications" :key="item.id">
+                        <a :href="item.open_url"
+                           class="ta-notif-item"
+                           :class="{ 'ta-notif-item--unread': item.is_unread }">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <span class="fw-semibold small" style="color: var(--ta-text-primary);" x-text="item.title"></span>
+                                <span x-show="item.is_unread" class="ta-badge ta-badge-info flex-shrink-0" style="font-size: 0.65rem; padding: 1px 6px;">Nueva</span>
+                            </div>
+                            <p class="small mb-1 mt-1" style="color: var(--ta-text-body); line-height: 1.35;" x-show="item.body" x-text="item.body"></p>
+                            <div class="d-flex align-items-center justify-content-between" style="font-size: 0.72rem; color: var(--ta-text-muted);">
+                                <span x-text="item.time_ago"></span>
+                                <span class="fw-medium" style="color: #1d4ed8;">Abrir →</span>
+                            </div>
+                        </a>
                     </template>
                 </div>
 
                 @if (\Illuminate\Support\Facades\Route::has('notifications.mark-read'))
                     <template x-if="unreadCount > 0">
-                        <form method="POST" action="{{ route('notifications.mark-read') }}" class="px-3 pb-3">
+                        <form method="POST" action="{{ route('notifications.mark-read') }}" class="p-2 border-bottom" style="border-color: var(--sdr-border-color) !important;">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-primary w-100">
                                 Marcar todas como leídas
@@ -112,8 +147,7 @@
                 @endif
 
                 @if (\Illuminate\Support\Facades\Route::has('notifications.index'))
-                    <div class="ta-dropdown-divider"></div>
-                    <a class="ta-dropdown-item justify-content-center fw-semibold" style="color: var(--ta-brand-500);" href="{{ route('notifications.index') }}">
+                    <a class="ta-dropdown-item justify-content-center fw-semibold" style="color: #1d4ed8;" href="{{ route('notifications.index') }}">
                         Ver todas las notificaciones
                     </a>
                 @endif
@@ -121,14 +155,15 @@
         </div>
         @once
             <script>
-                function sdrNotificationBell(endpoint, initialCount) {
+                function sdrNotificationBell(endpoint, initialCount, initialNotifications) {
                     return {
                         unreadCount: initialCount || 0,
+                        notifications: Array.isArray(initialNotifications) ? initialNotifications : [],
                         endpoint,
                         lastActivityAt: Date.now(),
                         pollIntervalId: null,
                         idleThresholdMs: 180000,
-                        pollIntervalMs: 60000,
+                        pollIntervalMs: 50000,
 
                         init() {
                             if (!this.endpoint) {
@@ -172,6 +207,9 @@
                                     const data = await response.json();
                                     if (typeof data.unread_count === 'number') {
                                         this.unreadCount = data.unread_count;
+                                    }
+                                    if (Array.isArray(data.notifications)) {
+                                        this.notifications = data.notifications;
                                     }
                                 }
                             } catch (_) {}

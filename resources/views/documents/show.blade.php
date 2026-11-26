@@ -101,7 +101,7 @@
         </div>
 
         <div class="col-lg-5">
-            <div class="ta-card">
+            <div id="comments" class="ta-card">
                 <div class="ta-card-header d-flex justify-content-between align-items-center">
                     <h2 class="ta-card-title">Comentarios</h2>
                     <span class="ta-badge ta-badge-neutral">{{ $document->comments->count() }}</span>

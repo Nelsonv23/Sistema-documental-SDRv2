@@ -368,6 +368,26 @@ a:hover {
   box-shadow: 0 4px 10px rgba(29, 78, 216, 0.22);
 }
 
+.ta-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background-color: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ta-nav-link.active .ta-sidebar-badge {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
 .ta-nav-link.active:hover {
   color: #ffffff;
 }
@@ -522,6 +542,47 @@ a:hover {
   border-radius: 9999px;
   background-color: #FD853A;
   border: 2px solid var(--ta-bg-surface);
+}
+
+.ta-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background-color: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--sdr-surface-bg);
+}
+
+.ta-notif-dropdown {
+  width: 340px;
+  min-width: 320px;
+  max-width: calc(100vw - 1.5rem);
+}
+
+.ta-notif-item {
+  display: block;
+  padding: 0.75rem 1.15rem;
+  border-bottom: 1px solid var(--sdr-border-color);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.ta-notif-item:hover {
+  background-color: var(--ta-bg-hover);
+}
+
+.ta-notif-item--unread {
+  background-color: var(--sdr-surface-subtle);
 }
 
 .ta-search-box {

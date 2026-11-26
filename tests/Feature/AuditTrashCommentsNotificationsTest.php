@@ -293,4 +293,149 @@ class AuditTrashCommentsNotificationsTest extends TestCase
             'target_id' => $comment->id,
         ]);
     }
+
+    public function test_comment_notifications_notify_valid_participants_respect_deny_and_update_bell_polling(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador');
+        $usuarioA = $this->createUserWithRole('Jefatura', ['name' => 'Usuario A']);
+        $usuarioB = $this->createUserWithRole('Colaborador', ['name' => 'Usuario B']);
+        $usuarioC = $this->createUserWithRole('Colaborador', ['name' => 'Usuario C']);
+        $usuarioE = $this->createUserWithRole('Colaborador', ['name' => 'Usuario E']);
+
+        $folder = Folder::create(['name' => 'Contratos', 'created_by' => $admin->id]);
+        $this->permissions->grantAccess($folder, $usuarioA, $admin);
+        $this->permissions->grantAccess($folder, $usuarioB, $admin);
+        $this->permissions->grantAccess($folder, $usuarioC, $admin);
+        $this->permissions->grantAccess($folder, $usuarioE, $admin);
+
+        // Usuario A sube el documento.
+        $upload = $this->actingAs($usuarioA)->postJson(route('documents.store', $folder), [
+            'file' => UploadedFile::fake()->create('Contrato_Marco.pdf', 20, 'application/pdf'),
+        ])->assertCreated();
+
+        $doc = Document::findOrFail($upload->json('id'));
+
+        // Usuario C y Usuario E comentan primero; luego Usuario C recibe DENY en la carpeta.
+        $this->actingAs($usuarioC)->post(route('comments.store', $doc), ['body' => 'Primer aporte C'])->assertRedirect();
+        $this->actingAs($usuarioE)->post(route('comments.store', $doc), ['body' => 'Primer aporte E'])->assertRedirect();
+
+        $this->permissions->denyAccess($folder, $usuarioC, $admin);
+        Notification::query()->delete();
+
+        // Usuario B comenta el documento.
+        $this->actingAs($usuarioB)
+            ->post(route('comments.store', $doc), ['body' => 'Revisión completada por B'])
+            ->assertRedirect(route('documents.show', $doc));
+
+        // Usuario A (creador) y Usuario E (comentarista previo activo con acceso) reciben notificación;
+        // Usuario B (autor del comentario) y Usuario C (con DENY en carpeta) NO reciben notificación.
+        $this->assertDatabaseHas('notifications', ['user_id' => $usuarioA->id]);
+        $this->assertDatabaseHas('notifications', ['user_id' => $usuarioE->id]);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $usuarioB->id]);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $usuarioC->id]);
+
+        $notifA = Notification::where('user_id', $usuarioA->id)->firstOrFail();
+        $expectedUrl = route('documents.show', $doc).'#comments';
+
+        $this->assertStringContainsString('Usuario B', (string) $notifA->body);
+        $this->assertStringContainsString('Contrato_Marco.pdf', (string) $notifA->body);
+        $this->assertSame($expectedUrl, $notifA->data['url'] ?? null);
+
+        // Endpoint de polling y campanita del topbar para Usuario A reflejan unread_count = 1 y URL al documento.
+        $this->actingAs($usuarioA)
+            ->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notifA->id)
+            ->assertJsonPath('notifications.0.url', $expectedUrl);
+
+        $this->actingAs($usuarioA)
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee('sdrNotificationBell(', false)
+            ->assertSee('Usuario B comentó en')
+            ->assertSee('Contrato_Marco.pdf');
+
+        $this->actingAs($usuarioA)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('Usuario B comentó en')
+            ->assertSee(route('notifications.open', $notifA), false);
+
+        // Otro usuario no puede abrir ni marcar notificación ajena.
+        $this->actingAs($usuarioB)
+            ->get(route('notifications.open', $notifA))
+            ->assertForbidden();
+
+        // Al hacer clic para abrir la notificación individual, se marca leída y redirige al documento#comments.
+        $this->actingAs($usuarioA)
+            ->get(route('notifications.open', $notifA))
+            ->assertRedirect($expectedUrl);
+
+        $this->assertNotNull($notifA->fresh()->read_at);
+
+        $this->actingAs($usuarioA)
+            ->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+    }
+
+    public function test_admin_comment_notifies_authorized_folder_collaborators_and_excludes_denied_users(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador', ['name' => 'Admin Publicador']);
+        $colaboradorA = $this->createUserWithRole('Colaborador', ['name' => 'Colaborador A']);
+        $colaboradorB = $this->createUserWithRole('Colaborador', ['name' => 'Colaborador B']);
+
+        $folder = Folder::create(['name' => 'Normativas', 'created_by' => $admin->id]);
+        $this->permissions->grantAccess($folder, $colaboradorA, $admin);
+        $this->permissions->denyAccess($folder, $colaboradorB, $admin);
+
+        // Administrador sube y comenta el documento (incluso sin que Colaborador A haya comentado antes).
+        $upload = $this->actingAs($admin)->postJson(route('documents.store', $folder), [
+            'file' => UploadedFile::fake()->create('Circular_Interna.pdf', 12, 'application/pdf'),
+        ])->assertCreated();
+
+        $doc = Document::findOrFail($upload->json('id'));
+
+        $this->actingAs($admin)
+            ->post(route('comments.store', $doc), ['body' => 'Lectura obligatoria para el equipo.'])
+            ->assertRedirect(route('documents.show', $doc));
+
+        // Colaborador A recibe la notificación; Administrador (autor del comentario) y Colaborador B (DENY) no reciben nada.
+        $this->assertDatabaseHas('notifications', ['user_id' => $colaboradorA->id]);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $admin->id]);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $colaboradorB->id]);
+
+        $notifA = Notification::where('user_id', $colaboradorA->id)->firstOrFail();
+
+        // Campanita, barra lateral (enlace + badge) e historial reflejan unread_count = 1 para Colaborador A.
+        $this->actingAs($colaboradorA)
+            ->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.url', route('documents.show', $doc).'#comments');
+
+        $this->actingAs($colaboradorA)
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee(route('notifications.index'), false)
+            ->assertSee('ta-sidebar-badge', false);
+
+        $this->actingAs($colaboradorA)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('Admin Publicador comentó en')
+            ->assertSee('Circular_Interna.pdf')
+            ->assertSee(route('notifications.open', $notifA), false);
+
+        // Colaborador B con DENY no recibe notificación alguna.
+        $this->actingAs($colaboradorB)
+            ->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+    }
 }
