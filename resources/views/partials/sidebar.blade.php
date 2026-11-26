@@ -9,11 +9,11 @@
 @endphp
 
 <aside class="ta-sidebar" :class="{ 'is-open': mobileSidebarOpen }" aria-label="Menú principal">
-    <div class="ta-sidebar-header">
-        <a class="ta-brand-link w-100 justify-content-center px-2" href="{{ $homeHref }}" style="max-width: 100%;" title="SDR v2">
+    <div class="ta-sidebar-header" style="display: flex; justify-content: flex-start; align-items: center; padding: 0; height: auto; min-height: 100px;">
+        <a class="ta-brand-link" href="{{ $homeHref }}" style="display: flex; justify-content: flex-start; align-items: center; width: 100%; max-width: 100%; padding: 0; margin: 0;" title="SDR v2">
             <img src="{{ asset('images/brand/logo-version-azul.png') }}"
                  alt="SDR v2"
-                 style="max-height: 38px; max-width: 100%; width: auto; height: auto; object-fit: contain; display: block;">
+                 style="height: 100px; max-height: 100px; max-width: 100%; width: auto; object-fit: contain; display: block; margin: 0;">
         </a>
     </div>
 
