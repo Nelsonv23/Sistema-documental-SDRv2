@@ -46,6 +46,15 @@
         </button>
     @endif
 
+    @if ($currentFolder)
+        @can('delete', $currentFolder)
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">
+                <i data-lucide="trash-2" class="ta-icon-sm"></i>
+                <span>Eliminar</span>
+            </button>
+        @endcan
+    @endif
+
     @if (($currentFolder && auth()->user()->can('create', [App\Models\Folder::class, $currentFolder])) || (! $currentFolder && auth()->user()->can('createRoot', App\Models\Folder::class)))
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
             <i data-lucide="folder-plus" class="ta-icon-sm"></i>
@@ -448,6 +457,64 @@
                 </form>
             </div>
         </div>
+    @endif
+
+    {{-- Modal: Eliminar carpeta vacía --}}
+    @if ($currentFolder)
+        @can('delete', $currentFolder)
+            <div class="modal fade" id="deleteFolderModal" tabindex="-1" aria-labelledby="deleteFolderModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    @if ($deleteBlockReasons !== [])
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title fw-semibold" id="deleteFolderModalLabel">No se puede eliminar la carpeta</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning border-0 mb-0">
+                                    <div class="fw-semibold mb-1">La carpeta "{{ $currentFolder->name }}" no está vacía</div>
+                                    <p class="small mb-2">
+                                        Para eliminar una carpeta de forma segura, primero debe vaciarse por completo.
+                                    </p>
+                                    <ul class="small mb-0 ps-3">
+                                        @foreach ($deleteBlockReasons as $reason)
+                                            <li>{{ $reason }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Entendido</button>
+                            </div>
+                        </div>
+                    @else
+                        <form method="POST" action="{{ route('folders.destroy', $currentFolder) }}" class="modal-content">
+                            @csrf
+                            @method('DELETE')
+                            <div class="modal-header">
+                                <h5 class="modal-title fw-semibold" id="deleteFolderModalLabel">Eliminar carpeta vacía</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-3" style="color: var(--ta-text-body);">
+                                    ¿Confirmas que deseas eliminar la carpeta <strong>{{ $currentFolder->name }}</strong>?
+                                </p>
+                                <div class="alert alert-danger border-0 small mb-0">
+                                    Esta acción eliminará la carpeta y sus permisos asociados, y quedará registrada en el historial de auditoría.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-danger">
+                                    <i data-lucide="trash-2" class="ta-icon-sm"></i>
+                                    <span>Confirmar eliminación</span>
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @endcan
     @endif
 @endsection
 

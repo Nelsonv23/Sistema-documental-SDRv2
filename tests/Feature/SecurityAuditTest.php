@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SecurityAuditTest extends TestCase
@@ -76,6 +77,7 @@ class SecurityAuditTest extends TestCase
         $this->post(route('folders.store'), ['name' => 'Hack'])->assertRedirect('/login');
         $this->get(route('folders.show', $folder))->assertRedirect('/login');
         $this->patch(route('folders.update', $folder), ['name' => 'Hack'])->assertRedirect('/login');
+        $this->delete(route('folders.destroy', $folder))->assertRedirect('/login');
         $this->get(route('folders.permissions', $folder))->assertRedirect('/login');
         $this->post(route('folders.permissions.store', $folder), [])->assertRedirect('/login');
         $this->delete(route('folders.permissions.destroy', [$folder, $permission]))->assertRedirect('/login');
@@ -208,6 +210,7 @@ class SecurityAuditTest extends TestCase
             $this->actingAs($blockedUser)->patch(route('folders.update', $child), [
                 'name' => 'Renombrada',
             ])->assertForbidden();
+            $this->actingAs($blockedUser)->delete(route('folders.destroy', $child))->assertForbidden();
             $this->actingAs($blockedUser)->get(route('folders.permissions', $child))->assertForbidden();
             $this->actingAs($blockedUser)->post(route('folders.permissions.store', $child), [
                 'subject_type' => FolderPermission::SUBJECT_USER,
@@ -358,5 +361,136 @@ class SecurityAuditTest extends TestCase
         $this->actingAs($colaboradorUno)->delete(route('documents.destroy', $blockedDoc))->assertForbidden();
         $this->actingAs($jefatura)->delete(route('documents.destroy', $blockedDoc))->assertForbidden();
         $this->assertSame(Document::STATUS_ACTIVE, $blockedDoc->fresh()->status);
+    }
+
+    public function test_empty_folder_deletion_authorization_audit_and_integrity_guards(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador', true);
+        $admin->forceFill(['name' => 'Admin Auditor', 'email' => 'admin-del@sdr.local'])->save();
+
+        $jefatura = $this->createUserWithRole('Jefatura');
+        $colaborador = $this->createUserWithRole('Colaborador');
+        Role::firstOrCreate(['name' => 'Lector', 'guard_name' => 'web']);
+        $lector = $this->createUserWithRole('Lector');
+
+        $root = Folder::create(['name' => 'Operaciones', 'created_by' => $admin->id]);
+        $parent = Folder::create(['name' => 'Área Norte', 'parent_id' => $root->id, 'created_by' => $admin->id]);
+        $emptySub = Folder::create(['name' => 'Temporal', 'parent_id' => $parent->id, 'created_by' => $admin->id]);
+        $emptyRoot = Folder::create(['name' => 'Raíz Temporal', 'created_by' => $admin->id]);
+
+        $this->permissions->grantAccess($root, 'Jefatura', $admin);
+        $this->permissions->grantAccess($emptySub, 'Colaborador', $admin);
+        $this->permissions->grantAccess($emptySub, $lector, $admin);
+        $this->permissions->grantAccess($emptyRoot, 'Jefatura', $admin);
+
+        // Colaborador y Lector reciben HTTP 403 y no ven el modal de eliminación.
+        foreach ([$colaborador, $lector] as $forbiddenUser) {
+            $this->actingAs($forbiddenUser)
+                ->get(route('folders.show', $emptySub))
+                ->assertOk()
+                ->assertDontSee('id="deleteFolderModal"', false);
+
+            $this->actingAs($forbiddenUser)
+                ->delete(route('folders.destroy', $emptySub))
+                ->assertForbidden();
+        }
+
+        // Jefatura no puede eliminar carpeta raíz, pero sí subcarpeta no raíz autorizada sin DENY.
+        $this->actingAs($jefatura)->delete(route('folders.destroy', $emptyRoot))->assertForbidden();
+
+        // Si Jefatura recibe DENY en un ancestro, tampoco puede eliminar la subcarpeta.
+        $this->permissions->denyAccess($parent, $jefatura, $admin);
+        $this->actingAs($jefatura)->delete(route('folders.destroy', $emptySub))->assertForbidden();
+        $this->permissions->revokeAccess($parent, $jefatura);
+
+        // Bloqueo si la carpeta tiene subcarpetas.
+        $this->actingAs($admin)
+            ->get(route('folders.show', $parent))
+            ->assertOk()
+            ->assertSee('No se puede eliminar la carpeta')
+            ->assertSee('Contiene subcarpetas');
+
+        $this->actingAs($admin)
+            ->delete(route('folders.destroy', $parent))
+            ->assertRedirect(route('folders.show', $parent))
+            ->assertSessionHas('error');
+        $this->assertDatabaseHas('folders', ['id' => $parent->id]);
+
+        // Bloqueo si la carpeta tiene documentos activos.
+        $docUpload = $this->actingAs($admin)->postJson(route('documents.store', $emptySub), [
+            'file' => UploadedFile::fake()->create('Acta.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $doc = Document::findOrFail($docUpload->json('id'));
+
+        $this->actingAs($admin)
+            ->delete(route('folders.destroy', $emptySub))
+            ->assertRedirect(route('folders.show', $emptySub))
+            ->assertSessionHas('error');
+        $this->assertDatabaseHas('folders', ['id' => $emptySub->id]);
+
+        // Bloqueo si el documento pasó a papelera (deleted_at IS NOT NULL) para proteger trazabilidad y FK.
+        $this->actingAs($admin)->delete(route('documents.destroy', $doc))->assertRedirect();
+        $this->actingAs($admin)
+            ->get(route('folders.show', $emptySub))
+            ->assertOk()
+            ->assertSee('No se puede eliminar la carpeta')
+            ->assertSee('papelera o en el historial de trazabilidad');
+
+        $this->actingAs($admin)
+            ->delete(route('folders.destroy', $emptySub))
+            ->assertRedirect(route('folders.show', $emptySub))
+            ->assertSessionHas('error');
+        $this->assertDatabaseHas('folders', ['id' => $emptySub->id]);
+        $this->assertDatabaseHas('documents', ['id' => $doc->id, 'folder_id' => $emptySub->id]);
+
+        // Jefatura elimina subcarpeta realmente vacía -> redirige al padre y registra folder.deleted.
+        $jefaturaSub = Folder::create(['name' => 'Vacia Jefatura', 'parent_id' => $parent->id, 'created_by' => $admin->id]);
+        $jefSubId = $jefaturaSub->id;
+        $jefSubPath = $jefaturaSub->fresh()->path;
+
+        $this->actingAs($jefatura)
+            ->get(route('folders.show', $jefaturaSub))
+            ->assertOk()
+            ->assertSee('id="deleteFolderModal"', false)
+            ->assertSee('quedará registrada en el historial de auditoría');
+
+        $this->actingAs($jefatura)
+            ->delete(route('folders.destroy', $jefaturaSub))
+            ->assertRedirect(route('folders.show', $parent))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('folders', ['id' => $jefSubId]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'folder.deleted',
+            'target_id' => $jefSubId,
+            'actor_id' => $jefatura->id,
+        ]);
+
+        // Administrador elimina carpeta raíz vacía -> borra permisos, redirige a folders.index y audita path/actor snapshot.
+        $emptyRootId = $emptyRoot->id;
+        $emptyRootPath = $emptyRoot->fresh()->path;
+
+        $this->actingAs($admin)
+            ->delete(route('folders.destroy', $emptyRoot))
+            ->assertRedirect(route('folders.index'))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('folders', ['id' => $emptyRootId]);
+        $this->assertDatabaseMissing('folder_permissions', ['folder_id' => $emptyRootId]);
+
+        $auditLog = \App\Models\AuditLog::where('action', 'folder.deleted')
+            ->where('target_id', $emptyRootId)
+            ->first();
+
+        $this->assertNotNull($auditLog);
+        $this->assertSame('Admin Auditor', $auditLog->actor_name);
+        $this->assertSame('admin-del@sdr.local', $auditLog->actor_email);
+        $this->assertSame($emptyRootId, $auditLog->metadata['folder_id']);
+        $this->assertSame('Raíz Temporal', $auditLog->metadata['name']);
+        $this->assertSame($emptyRootPath, $auditLog->metadata['path']);
+        $this->assertDatabaseHas('audit_logs', ['target_id' => $jefSubId, 'action' => 'folder.deleted']);
+        $this->assertSame('/'.$root->id.'/'.$parent->id.'/'.$jefSubId.'/', $jefSubPath);
     }
 }

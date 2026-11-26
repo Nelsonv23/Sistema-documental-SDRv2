@@ -11,6 +11,7 @@ use App\Services\FolderPermissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use InvalidArgumentException;
 use Spatie\Permission\Models\Role;
@@ -45,6 +46,7 @@ class FolderController extends Controller
             'subfolders' => $subfolders,
             'documents' => null,
             'movableFolders' => collect(),
+            'deleteBlockReasons' => [],
             'storage' => $this->storage,
         ]);
     }
@@ -80,12 +82,28 @@ class FolderController extends Controller
                 ->get(['id', 'name', 'path'])
             : collect();
 
+        $deleteBlockReasons = [];
+        if ($user->can('delete', $folder)) {
+            if ($folder->children()->exists()) {
+                $deleteBlockReasons[] = 'Contiene subcarpetas que deben eliminarse o moverse primero.';
+            }
+
+            if ($folder->documents()->whereNull('deleted_at')->exists()) {
+                $deleteBlockReasons[] = 'Contiene documentos activos que deben enviarse primero a la papelera.';
+            }
+
+            if ($folder->documents()->whereNotNull('deleted_at')->exists()) {
+                $deleteBlockReasons[] = 'Existen documentos asociados en la papelera o en el historial de trazabilidad.';
+            }
+        }
+
         return view('folders.show', [
             'currentFolder' => $folder,
             'breadcrumbs' => $breadcrumbs,
             'subfolders' => $subfolders,
             'documents' => $documents,
             'movableFolders' => $movableFolders,
+            'deleteBlockReasons' => $deleteBlockReasons,
             'storage' => $this->storage,
         ]);
     }
@@ -167,6 +185,64 @@ class FolderController extends Controller
         return redirect()
             ->route('folders.show', $folder)
             ->with('status', "Carpeta \"{$folder->name}\" actualizada.");
+    }
+
+    public function destroy(Request $request, Folder $folder): RedirectResponse
+    {
+        $this->authorize('delete', $folder);
+
+        $user = $request->user();
+        $parentId = $folder->parent_id;
+        $folderName = $folder->name;
+
+        $blockReason = DB::transaction(function () use ($folder, $user): ?string {
+            /** @var Folder|null $lockedFolder */
+            $lockedFolder = Folder::query()->lockForUpdate()->find($folder->id);
+
+            if (! $lockedFolder) {
+                return null;
+            }
+
+            if ($lockedFolder->children()->exists()) {
+                return "No se puede eliminar la carpeta \"{$lockedFolder->name}\" porque aún contiene subcarpetas. Elimínalas o muévelas primero.";
+            }
+
+            if ($lockedFolder->documents()->whereNull('deleted_at')->exists()) {
+                return "No se puede eliminar la carpeta \"{$lockedFolder->name}\" porque contiene documentos activos. Envíalos primero a la papelera.";
+            }
+
+            if ($lockedFolder->documents()->exists()) {
+                return "No se puede eliminar la carpeta \"{$lockedFolder->name}\" porque existen documentos asociados en la papelera o en el historial de trazabilidad.";
+            }
+
+            $this->audit->log('folder.deleted', $lockedFolder, [
+                'folder_id' => $lockedFolder->id,
+                'name' => $lockedFolder->name,
+                'path' => $lockedFolder->path,
+                'parent_id' => $lockedFolder->parent_id,
+            ], $user);
+
+            $lockedFolder->permissions()->delete();
+            $lockedFolder->delete();
+
+            return null;
+        });
+
+        if ($blockReason !== null) {
+            return redirect()
+                ->route('folders.show', $folder)
+                ->with('error', $blockReason);
+        }
+
+        if ($parentId !== null) {
+            return redirect()
+                ->route('folders.show', $parentId)
+                ->with('status', "Carpeta \"{$folderName}\" eliminada correctamente.");
+        }
+
+        return redirect()
+            ->route('folders.index')
+            ->with('status', "Carpeta raíz \"{$folderName}\" eliminada correctamente.");
     }
 
     public function permissions(Request $request, Folder $folder): View

@@ -54,6 +54,23 @@ class FolderPolicy
         return $this->update($user, $folder);
     }
 
+    public function delete(User $user, Folder $folder): bool
+    {
+        if ($user->is_active === false) {
+            return false;
+        }
+
+        if ($user->hasRole('Administrador')) {
+            return true;
+        }
+
+        if ($user->hasRole('Jefatura')) {
+            return $folder->parent_id !== null && $this->permissions->canAccess($user, $folder);
+        }
+
+        return false;
+    }
+
     public function upload(User $user, Folder $folder): bool
     {
         return $this->permissions->canAccess($user, $folder);

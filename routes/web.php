@@ -21,6 +21,7 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
     Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
     Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
     Route::get('/folders/{folder}/permissions', [FolderController::class, 'permissions'])->name('folders.permissions');
     Route::post('/folders/{folder}/permissions', [FolderController::class, 'storePermission'])->name('folders.permissions.store');
     Route::delete('/folders/{folder}/permissions/{permission}', [FolderController::class, 'destroyPermission'])->name('folders.permissions.destroy');
