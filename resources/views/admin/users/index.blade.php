@@ -160,25 +160,32 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if ($isSelf)
-                                        <span class="small" style="color: var(--ta-text-muted);">Cuenta actual protegida</span>
-                                    @else
-                                        <form method="POST" action="{{ route('admin.users.toggle-status', $listedUser) }}" class="d-inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            @if ($listedUser->is_active)
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    <i data-lucide="user-x" class="ta-icon-xs"></i>
-                                                    <span>Desactivar</span>
-                                                </button>
-                                            @else
-                                                <button type="submit" class="btn btn-sm btn-outline-success">
-                                                    <i data-lucide="user-check" class="ta-icon-xs"></i>
-                                                    <span>Activar</span>
-                                                </button>
-                                            @endif
-                                        </form>
-                                    @endif
+                                    <div class="d-inline-flex flex-wrap align-items-center justify-content-end gap-2">
+                                        <a href="{{ route('admin.users.edit', $listedUser) }}" class="btn btn-sm btn-outline-primary">
+                                            <i data-lucide="pencil" class="ta-icon-xs"></i>
+                                            <span>Editar</span>
+                                        </a>
+
+                                        @if ($isSelf)
+                                            <span class="small" style="color: var(--ta-text-muted);">Cuenta actual protegida</span>
+                                        @else
+                                            <form method="POST" action="{{ route('admin.users.toggle-status', $listedUser) }}" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                @if ($listedUser->is_active)
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i data-lucide="user-x" class="ta-icon-xs"></i>
+                                                        <span>Desactivar</span>
+                                                    </button>
+                                                @else
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                                        <i data-lucide="user-check" class="ta-icon-xs"></i>
+                                                        <span>Activar</span>
+                                                    </button>
+                                                @endif
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

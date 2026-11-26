@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminUsersTest extends TestCase
@@ -41,6 +43,11 @@ class AdminUsersTest extends TestCase
                 'password' => 'Sdr2026!',
                 'password_confirmation' => 'Sdr2026!',
                 'role' => 'Colaborador',
+            ])->assertForbidden();
+            $this->actingAs($user)->get(route('admin.users.edit', $target))->assertForbidden();
+            $this->actingAs($user)->patch(route('admin.users.update', $target), [
+                'name' => 'Intento Edit',
+                'email' => 'intento-edit@sdr.local',
             ])->assertForbidden();
             $this->actingAs($user)->patch(route('admin.users.update-role', $target), [
                 'role' => 'Jefatura',
@@ -170,5 +177,89 @@ class AdminUsersTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertTrue($admin->fresh()->hasRole('Administrador'));
+    }
+
+    public function test_administrator_can_edit_user_name_email_and_optional_password_with_audit_and_remember_token_rotation(): void
+    {
+        $admin = $this->createUserWithRole('Administrador');
+        $other = $this->createUserWithRole('Colaborador', ['email' => 'existente@sdr.local']);
+        $target = $this->createUserWithRole('Colaborador', [
+            'name' => 'Nombre Original',
+            'email' => 'original@sdr.local',
+            'password' => Hash::make('ClaveOriginal2026!'),
+            'remember_token' => 'token-inicial-12345',
+        ]);
+
+        // Vista de edición accesible solo para Administrador.
+        $this->actingAs($admin)
+            ->get(route('admin.users.edit', $target))
+            ->assertOk()
+            ->assertSee('Nombre Original')
+            ->assertSee('original@sdr.local');
+
+        // Rechaza correo electrónico duplicado perteneciente a otro usuario.
+        $this->actingAs($admin)
+            ->from(route('admin.users.edit', $target))
+            ->patch(route('admin.users.update', $target), [
+                'name' => 'Nombre Intento',
+                'email' => 'EXISTENTE@SDR.LOCAL',
+            ])
+            ->assertRedirect(route('admin.users.edit', $target))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame('original@sdr.local', $target->fresh()->email);
+
+        // Actualiza nombre y correo manteniendo contraseña actual cuando password viene vacío.
+        $this->actingAs($admin)
+            ->patch(route('admin.users.update', $target), [
+                'name' => 'Nombre Actualizado',
+                'email' => 'ACTUALIZADO@SDR.LOCAL',
+                'password' => '',
+                'password_confirmation' => '',
+            ])
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('status');
+
+        $target->refresh();
+        $this->assertSame('Nombre Actualizado', $target->name);
+        $this->assertSame('actualizado@sdr.local', $target->email);
+        $this->assertTrue(Hash::check('ClaveOriginal2026!', $target->password));
+        $this->assertNotSame('token-inicial-12345', $target->remember_token);
+        $tokenAfterEmailChange = $target->remember_token;
+
+        $logEmail = AuditLog::where('action', 'user.updated')
+            ->where('target_id', $target->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($logEmail);
+        $this->assertSame(['name', 'email'], $logEmail->metadata['changed_fields']);
+        $this->assertSame('Nombre Original', $logEmail->metadata['previous_name']);
+        $this->assertSame('Nombre Actualizado', $logEmail->metadata['new_name']);
+        $this->assertSame('original@sdr.local', $logEmail->metadata['previous_email']);
+        $this->assertSame('actualizado@sdr.local', $logEmail->metadata['new_email']);
+
+        // También permite mantener el mismo correo (Rule::unique ignore) y cambiar solo la contraseña.
+        $this->actingAs($admin)
+            ->patch(route('admin.users.update', $target), [
+                'name' => 'Nombre Actualizado',
+                'email' => 'actualizado@sdr.local',
+                'password' => 'NuevaClave2026!',
+                'password_confirmation' => 'NuevaClave2026!',
+            ])
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('status');
+
+        $target->refresh();
+        $this->assertTrue(Hash::check('NuevaClave2026!', $target->password));
+        $this->assertNotSame($tokenAfterEmailChange, $target->remember_token);
+
+        $logPassword = AuditLog::where('action', 'user.updated')
+            ->where('target_id', $target->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertSame(['password'], $logPassword->metadata['changed_fields']);
+        $this->assertTrue($logPassword->metadata['password_updated']);
     }
 }

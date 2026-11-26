@@ -64,6 +64,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
                 Route::get('/', [AdminUserController::class, 'index'])->name('index');
                 Route::get('/create', [AdminUserController::class, 'create'])->name('create');
                 Route::post('/', [AdminUserController::class, 'store'])->name('store');
+                Route::get('/{user}/edit', [AdminUserController::class, 'edit'])->name('edit');
+                Route::patch('/{user}', [AdminUserController::class, 'update'])->name('update');
                 Route::patch('/{user}/role', [AdminUserController::class, 'updateRole'])->name('update-role');
                 Route::patch('/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('toggle-status');
             });

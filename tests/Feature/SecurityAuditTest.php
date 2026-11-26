@@ -105,6 +105,8 @@ class SecurityAuditTest extends TestCase
         $this->get(route('admin.users.index'))->assertRedirect('/login');
         $this->get(route('admin.users.create'))->assertRedirect('/login');
         $this->post(route('admin.users.store'), [])->assertRedirect('/login');
+        $this->get(route('admin.users.edit', $admin))->assertRedirect('/login');
+        $this->patch(route('admin.users.update', $admin), [])->assertRedirect('/login');
         $this->patch(route('admin.users.update-role', $admin), [])->assertRedirect('/login');
         $this->patch(route('admin.users.toggle-status', $admin))->assertRedirect('/login');
         $this->get(route('admin.trash.index'))->assertRedirect('/login');
@@ -141,6 +143,11 @@ class SecurityAuditTest extends TestCase
                 'password' => 'Sdr2026!',
                 'password_confirmation' => 'Sdr2026!',
                 'role' => 'Administrador',
+            ])->assertForbidden();
+            $this->actingAs($nonAdmin)->get(route('admin.users.edit', $targetUser))->assertForbidden();
+            $this->actingAs($nonAdmin)->patch(route('admin.users.update', $targetUser), [
+                'name' => 'Hack',
+                'email' => 'hack-update@sdr.local',
             ])->assertForbidden();
             $this->actingAs($nonAdmin)->patch(route('admin.users.update-role', $targetUser), [
                 'role' => 'Administrador',

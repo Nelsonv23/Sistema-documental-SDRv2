@@ -101,6 +101,93 @@ class AdminUserController extends Controller
             ->with('status', "Usuario {$user->name} creado con el rol {$validated['role']}.");
     }
 
+    public function edit(User $user): View
+    {
+        return view('admin.users.edit', [
+            'editedUser' => $user->loadMissing('roles'),
+        ]);
+    }
+
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        $request->merge([
+            'email' => Str::lower(trim((string) $request->input('email'))),
+        ]);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => ['nullable', 'string', Password::min(8), 'confirmed'],
+        ]);
+
+        $newName = trim($validated['name']);
+        $newEmail = $validated['email'];
+        $newPassword = $validated['password'] ?? null;
+
+        $previousName = $user->name;
+        $previousEmail = $user->email;
+
+        $nameChanged = $newName !== $previousName;
+        $emailChanged = $newEmail !== $previousEmail;
+        $passwordChanged = is_string($newPassword) && $newPassword !== '';
+
+        $changedFields = [];
+        $metadata = [];
+
+        if ($nameChanged) {
+            $changedFields[] = 'name';
+            $metadata['previous_name'] = $previousName;
+            $metadata['new_name'] = $newName;
+        }
+
+        if ($emailChanged) {
+            $changedFields[] = 'email';
+            $metadata['previous_email'] = $previousEmail;
+            $metadata['new_email'] = $newEmail;
+        }
+
+        if ($passwordChanged) {
+            $changedFields[] = 'password';
+            $metadata['password_updated'] = true;
+        }
+
+        if ($changedFields === []) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('status', "No se realizaron cambios en {$user->name}.");
+        }
+
+        $metadata['changed_fields'] = $changedFields;
+
+        $user->forceFill([
+            'name' => $newName,
+            'email' => $newEmail,
+        ]);
+
+        if ($passwordChanged) {
+            $user->password = $newPassword;
+        }
+
+        if ($emailChanged || $passwordChanged) {
+            $user->setRememberToken(Str::random(60));
+        }
+
+        $user->save();
+
+        $this->audit->log('user.updated', $user, $metadata, $request->user());
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('status', "Datos de {$user->name} actualizados correctamente.");
+    }
+
     public function updateRole(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
