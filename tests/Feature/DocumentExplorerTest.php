@@ -286,4 +286,84 @@ class DocumentExplorerTest extends TestCase
         Storage::disk('local')->assertExists($freshOrphan);
         Storage::disk('local')->assertExists($validKey);
     }
+
+    public function test_explorer_index_displays_personalized_welcome_and_role_specific_kpis(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['name' => 'Ana Administradora', 'is_active' => true]);
+        $admin->syncRoles(['Administrador']);
+
+        $colaborador = User::factory()->create(['name' => 'Luis Colaborador', 'is_active' => true]);
+        $colaborador->syncRoles(['Colaborador']);
+
+        $rootAllowed = Folder::create(['name' => 'General', 'created_by' => $admin->id]);
+        $subDenied = Folder::create(['name' => 'Privada', 'parent_id' => $rootAllowed->id, 'created_by' => $admin->id]);
+        $this->permissions->grantAccess($rootAllowed, 'Colaborador', $admin);
+        $this->permissions->denyAccess($subDenied, $colaborador, $admin);
+
+        // Subida propia en carpeta permitida + subida de Admin en carpeta permitida + subida en carpeta denegada + archivo en papelera.
+        $own = $this->actingAs($colaborador)->postJson(route('documents.store', $rootAllowed), [
+            'file' => UploadedFile::fake()->createWithContent('Propio.pdf', str_repeat('a', 2048)),
+        ])->assertCreated();
+        $other = $this->actingAs($admin)->postJson(route('documents.store', $rootAllowed), [
+            'file' => UploadedFile::fake()->createWithContent('Equipo.pdf', str_repeat('b', 2048)),
+        ])->assertCreated();
+        $denied = $this->actingAs($admin)->postJson(route('documents.store', $subDenied), [
+            'file' => UploadedFile::fake()->createWithContent('Secreto.pdf', str_repeat('c', 2048)),
+        ])->assertCreated();
+
+        // Documento antiguo (> 7 días) para probar el filtro de Novedades (7 días).
+        $oldDoc = Document::findOrFail($other->json('id'));
+        Document::withoutTimestamps(function () use ($oldDoc): void {
+            $oldDoc->forceFill([
+                'created_at' => now()->subDays(12),
+                'updated_at' => now()->subDays(12),
+            ])->saveQuietly();
+        });
+
+        // Documento en papelera para probar "En Papelera" en Administrador.
+        $trashed = $this->actingAs($admin)->postJson(route('documents.store', $rootAllowed), [
+            'file' => UploadedFile::fake()->createWithContent('Papelera.pdf', str_repeat('d', 1024)),
+        ])->assertCreated();
+        $this->actingAs($admin)->delete(route('documents.destroy', $trashed->json('id')))->assertRedirect();
+
+        // Vista Administrador: saludo, rol, 4 KPIs (incluye Papelera + Almacenamiento + botón Nueva carpeta).
+        $this->actingAs($admin)
+            ->get(route('folders.index'))
+            ->assertOk()
+            ->assertSee('Bienvenido/a, Ana Administradora')
+            ->assertSee('Administrador')
+            ->assertSee('Carpetas disponibles')
+            ->assertSee('Documentos activos')
+            ->assertSee('Novedades (7 días)')
+            ->assertSee('En Papelera')
+            ->assertSee(route('admin.trash.index'))
+            ->assertSee('Almacenamiento: 6.00 KB')
+            ->assertSee('Nueva carpeta')
+            ->assertViewHas('accessibleFoldersCount', 2)
+            ->assertViewHas('rootFoldersCount', 1)
+            ->assertViewHas('accessibleDocumentsCount', 3)
+            ->assertViewHas('recentDocumentsCount', 2)
+            ->assertViewHas('trashedDocumentsCount', 1);
+
+        // Vista Colaborador: saludo, rol, KPIs respetando DENY, Mis documentos y sin botón Nueva carpeta.
+        $this->actingAs($colaborador)
+            ->get(route('folders.index'))
+            ->assertOk()
+            ->assertSee('Bienvenido/a, Luis Colaborador')
+            ->assertSee('Colaborador')
+            ->assertSee('Mis documentos')
+            ->assertSee('En tus carpetas autorizadas')
+            ->assertDontSee('En Papelera')
+            ->assertDontSee('Nueva carpeta')
+            ->assertViewHas('accessibleFoldersCount', 1)
+            ->assertViewHas('rootFoldersCount', 1)
+            ->assertViewHas('accessibleDocumentsCount', 2)
+            ->assertViewHas('recentDocumentsCount', 1)
+            ->assertViewHas('myDocumentsCount', 1);
+
+        $this->assertNotNull($own->json('id'));
+        $this->assertNotNull($denied->json('id'));
+    }
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light" data-bs-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +12,7 @@
                 const saved = localStorage.getItem('sdr_theme');
                 if (saved === 'dark' || saved === 'light') {
                     document.documentElement.setAttribute('data-theme', saved);
+                    document.documentElement.setAttribute('data-bs-theme', saved);
                 }
             } catch (_) {}
         })();
@@ -30,7 +31,7 @@
         <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
             <div class="ta-auth-card">
                 <div class="mb-4">
-                    <div class="d-flex justify-content-center align-items-center text-center mb-4">
+                    <div class="d-flex justify-content-center align-items-center text-center mb-4 ta-auth-logo-wrap">
                         <img src="{{ asset('images/brand/logo-version-azul.png') }}"
                              alt="SDR Servicios"
                              style="width: 350px; max-width: 100%; height: auto; object-fit: contain; display: block;">

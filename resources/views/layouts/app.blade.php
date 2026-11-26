@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light" data-bs-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +12,7 @@
                 const saved = localStorage.getItem('sdr_theme');
                 if (saved === 'dark' || saved === 'light') {
                     document.documentElement.setAttribute('data-theme', saved);
+                    document.documentElement.setAttribute('data-bs-theme', saved);
                 }
             } catch (_) {}
         })();
@@ -78,26 +79,26 @@
                     </div>
                 @endif
 
-                {{-- Page Header estilo TailAdmin: Título izquierda / Breadcrumb + acciones derecha --}}
+                {{-- Breadcrumb discreto + Command Header estilo Orchid --}}
                 @if (View::hasSection('page-title') || View::hasSection('breadcrumbs') || View::hasSection('page-actions'))
-                    <div class="ta-page-header">
-                        <div>
-                            @hasSection('page-title')
-                                <h1 class="ta-page-title">@yield('page-title')</h1>
-                            @endif
-                            @hasSection('page-subtitle')
-                                <p class="ta-page-subtitle">@yield('page-subtitle')</p>
-                            @endif
-                        </div>
+                    @hasSection('breadcrumbs')
+                        <nav aria-label="breadcrumb" class="mb-2">
+                            <ol class="ta-breadcrumb">
+                                @yield('breadcrumbs')
+                            </ol>
+                        </nav>
+                    @endif
 
-                        <div class="ta-page-header-right">
-                            @hasSection('breadcrumbs')
-                                <nav aria-label="breadcrumb">
-                                    <ol class="ta-breadcrumb">
-                                        @yield('breadcrumbs')
-                                    </ol>
-                                </nav>
-                            @endif
+                    @if (View::hasSection('page-title') || View::hasSection('page-actions'))
+                        <div class="ta-page-header ta-command-header">
+                            <div>
+                                @hasSection('page-title')
+                                    <h1 class="ta-page-title">@yield('page-title')</h1>
+                                @endif
+                                @hasSection('page-subtitle')
+                                    <p class="ta-page-subtitle">@yield('page-subtitle')</p>
+                                @endif
+                            </div>
 
                             @hasSection('page-actions')
                                 <div class="ta-page-actions">
@@ -105,7 +106,7 @@
                                 </div>
                             @endif
                         </div>
-                    </div>
+                    @endif
                 @endif
 
                 @yield('content')
@@ -208,6 +209,7 @@
                 toggleTheme() {
                     this.theme = this.theme === 'dark' ? 'light' : 'dark';
                     document.documentElement.setAttribute('data-theme', this.theme);
+                    document.documentElement.setAttribute('data-bs-theme', this.theme);
                     try {
                         localStorage.setItem('sdr_theme', this.theme);
                     } catch (_) {}

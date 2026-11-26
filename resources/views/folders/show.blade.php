@@ -73,10 +73,10 @@
 @endsection
 
 @section('content')
-    {{-- Tarjetas de resumen superior estilo TailAdmin --}}
+    {{-- Tarjetas de resumen superior estilo Orchid --}}
     <div class="row g-3 g-md-4 mb-4">
         <div class="col-sm-6 col-xl-4">
-            <div class="ta-card h-100">
+            <div class="ta-card ta-kpi-card h-100">
                 <div class="ta-card-body d-flex align-items-center justify-content-between">
                     <div>
                         <div class="small fw-medium" style="color: var(--ta-text-muted);">Carpetas visibles</div>
@@ -92,7 +92,7 @@
         </div>
 
         <div class="col-sm-6 col-xl-4">
-            <div class="ta-card h-100">
+            <div class="ta-card ta-kpi-card h-100">
                 <div class="ta-card-body d-flex align-items-center justify-content-between">
                     <div>
                         <div class="small fw-medium" style="color: var(--ta-text-muted);">
@@ -102,7 +102,7 @@
                             {{ $currentFolder ? $documents->total() : 'Raíz' }}
                         </div>
                     </div>
-                    <span class="ta-stat-icon">
+                    <span class="ta-stat-icon ta-stat-icon--brand">
                         <i data-lucide="files" class="ta-icon"></i>
                     </span>
                 </div>
@@ -110,7 +110,7 @@
         </div>
 
         <div class="col-sm-12 col-xl-4">
-            <div class="ta-card h-100">
+            <div class="ta-card ta-kpi-card h-100">
                 <div class="ta-card-body d-flex align-items-center justify-content-between">
                     <div>
                         <div class="small fw-medium" style="color: var(--ta-text-muted);">Almacenamiento privado</div>

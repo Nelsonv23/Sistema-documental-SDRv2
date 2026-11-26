@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
+use App\Models\DocumentVersion;
 use App\Models\Folder;
 use App\Models\FolderPermission;
 use App\Models\User;
@@ -40,14 +42,68 @@ class FolderController extends Controller
                 ->orderBy('name')
                 ->get();
 
-        return view('folders.show', [
-            'currentFolder' => null,
-            'breadcrumbs' => collect(),
+        $accessibleFoldersCount = count($accessibleIds);
+        $rootFoldersCount = $accessibleIds === []
+            ? 0
+            : Folder::query()
+                ->whereIn('id', $accessibleIds)
+                ->whereNull('parent_id')
+                ->count();
+
+        $accessibleDocumentsCount = $accessibleIds === []
+            ? 0
+            : Document::query()
+                ->active()
+                ->whereIn('folder_id', $accessibleIds)
+                ->count();
+
+        $sevenDaysAgo = now()->subDays(7);
+        $recentDocumentsCount = $accessibleIds === []
+            ? 0
+            : Document::query()
+                ->active()
+                ->whereIn('folder_id', $accessibleIds)
+                ->where(function ($query) use ($sevenDaysAgo): void {
+                    $query->where('created_at', '>=', $sevenDaysAgo)
+                        ->orWhere('updated_at', '>=', $sevenDaysAgo);
+                })
+                ->count();
+
+        $isAdmin = $user->hasRole('Administrador');
+        $trashedDocumentsCount = 0;
+        $totalStorageFormatted = '0 KB';
+        $myDocumentsCount = 0;
+
+        if ($isAdmin) {
+            $trashedDocumentsCount = Document::query()->trashed()->count();
+
+            $totalStorageBytes = (int) DocumentVersion::query()
+                ->join('documents', 'documents.current_version_id', '=', 'document_versions.id')
+                ->where('documents.status', Document::STATUS_ACTIVE)
+                ->whereNull('documents.deleted_at')
+                ->sum('document_versions.size');
+
+            $totalStorageFormatted = $this->formatStorageSize($totalStorageBytes);
+        } else {
+            $myDocumentsCount = $accessibleIds === []
+                ? 0
+                : Document::query()
+                    ->active()
+                    ->whereIn('folder_id', $accessibleIds)
+                    ->where('created_by', $user->id)
+                    ->count();
+        }
+
+        return view('folders.index', [
             'subfolders' => $subfolders,
-            'documents' => null,
-            'movableFolders' => collect(),
-            'deleteBlockReasons' => [],
-            'storage' => $this->storage,
+            'accessibleFoldersCount' => $accessibleFoldersCount,
+            'rootFoldersCount' => $rootFoldersCount,
+            'accessibleDocumentsCount' => $accessibleDocumentsCount,
+            'recentDocumentsCount' => $recentDocumentsCount,
+            'trashedDocumentsCount' => $trashedDocumentsCount,
+            'totalStorageFormatted' => $totalStorageFormatted,
+            'myDocumentsCount' => $myDocumentsCount,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
@@ -375,5 +431,22 @@ class FolderController extends Controller
         return $path !== ''
             ? array_values(array_map('intval', explode('/', $path)))
             : [(int) $folder->id];
+    }
+
+    private function formatStorageSize(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '0 KB';
+        }
+
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2).' GB';
+        }
+
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2).' MB';
+        }
+
+        return number_format($bytes / 1024, 2).' KB';
     }
 }
