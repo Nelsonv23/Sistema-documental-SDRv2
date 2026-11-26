@@ -31,7 +31,7 @@
     @can('delete', $document)
         <form method="POST"
               action="{{ route('documents.destroy', $document) }}"
-              onsubmit="return confirm('¿Enviar este documento a la papelera?')">
+              onsubmit="return confirm('¿Eliminar este documento? El archivo irá a la papelera de seguridad por 60 días y solo podrá ser restaurado por un Administrador.')">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-outline-danger">

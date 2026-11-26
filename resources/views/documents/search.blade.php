@@ -159,6 +159,17 @@
                                             <i data-lucide="download" class="ta-icon-xs"></i>
                                             <span>Descargar</span>
                                         </a>
+                                        @can('delete', $doc)
+                                            <form method="POST"
+                                                  action="{{ route('documents.destroy', $doc) }}"
+                                                  onsubmit="return confirm('¿Eliminar este documento? El archivo irá a la papelera de seguridad por 60 días y solo podrá ser restaurado por un Administrador.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Enviar a papelera">
+                                                    <i data-lucide="trash-2" class="ta-icon-xs"></i>
+                                                </button>
+                                            </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

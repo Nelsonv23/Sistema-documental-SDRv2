@@ -40,11 +40,13 @@ class DocumentPolicy
             return false;
         }
 
-        if ($user->hasRole(['Administrador', 'Jefatura'])) {
+        if ($user->hasAnyRole(['Administrador', 'Jefatura'])) {
             return true;
         }
 
-        return (int) $document->created_by === (int) $user->id;
+        return $user->hasRole('Colaborador')
+            && $document->created_by !== null
+            && (int) $document->created_by === (int) $user->id;
     }
 
     public function restore(User $user, Document $document): bool

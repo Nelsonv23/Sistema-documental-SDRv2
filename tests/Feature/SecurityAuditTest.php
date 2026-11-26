@@ -252,4 +252,111 @@ class SecurityAuditTest extends TestCase
             ->getJson(route('notifications.unread-count'))
             ->assertForbidden();
     }
+
+    public function test_document_deletion_authorization_and_ui_visibility_rules(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador');
+        $jefatura = $this->createUserWithRole('Jefatura');
+        $colaboradorUno = $this->createUserWithRole('Colaborador');
+        $colaboradorDos = $this->createUserWithRole('Colaborador');
+
+        $folder = Folder::create(['name' => 'Proyectos', 'created_by' => $admin->id]);
+        $this->permissions->grantAccess($folder, 'Jefatura', $admin);
+        $this->permissions->grantAccess($folder, 'Colaborador', $admin);
+
+        $ownUpload = $this->actingAs($colaboradorUno)->postJson(route('documents.store', $folder), [
+            'file' => UploadedFile::fake()->create('Propio.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $ownDoc = Document::findOrFail($ownUpload->json('id'));
+
+        $otherUpload = $this->actingAs($colaboradorDos)->postJson(route('documents.store', $folder), [
+            'file' => UploadedFile::fake()->create('Ajeno.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $otherDoc = Document::findOrFail($otherUpload->json('id'));
+
+        $adminTargetUpload = $this->actingAs($colaboradorDos)->postJson(route('documents.store', $folder), [
+            'file' => UploadedFile::fake()->create('ParaAdmin.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $adminTargetDoc = Document::findOrFail($adminTargetUpload->json('id'));
+
+        // Interfaz de carpeta, detalle y búsqueda muestra eliminar solo si @can('delete', $document).
+        $this->actingAs($colaboradorUno)
+            ->get(route('folders.show', $folder))
+            ->assertOk()
+            ->assertSee('action="'.route('documents.destroy', $ownDoc).'"', false)
+            ->assertDontSee('action="'.route('documents.destroy', $otherDoc).'"', false)
+            ->assertSee('papelera de seguridad por 60 días');
+
+        $this->actingAs($colaboradorUno)
+            ->get(route('documents.search', ['folder_id' => $folder->id]))
+            ->assertOk()
+            ->assertSee('action="'.route('documents.destroy', $ownDoc).'"', false)
+            ->assertDontSee('action="'.route('documents.destroy', $otherDoc).'"', false);
+
+        $this->actingAs($colaboradorUno)
+            ->get(route('documents.show', $otherDoc))
+            ->assertOk()
+            ->assertDontSee('action="'.route('documents.destroy', $otherDoc).'"', false);
+
+        // Colaborador NO puede eliminar documentos subidos por otro usuario en la misma carpeta.
+        $this->actingAs($colaboradorUno)
+            ->delete(route('documents.destroy', $otherDoc))
+            ->assertForbidden();
+        $this->assertSame(Document::STATUS_ACTIVE, $otherDoc->fresh()->status);
+
+        // Colaborador SÍ puede eliminar un documento propio (soft delete a papelera + auditoría).
+        $this->actingAs($colaboradorUno)
+            ->delete(route('documents.destroy', $ownDoc))
+            ->assertRedirect(route('folders.show', $folder));
+
+        $ownTrashed = $ownDoc->fresh();
+        $this->assertSame(Document::STATUS_TRASHED, $ownTrashed->status);
+        $this->assertNotNull($ownTrashed->deleted_at);
+        $this->assertSame($colaboradorUno->id, $ownTrashed->deleted_by);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'document.deleted',
+            'target_id' => $ownDoc->id,
+            'actor_id' => $colaboradorUno->id,
+        ]);
+
+        // Jefatura puede eliminar documentos de otros en carpetas autorizadas.
+        $this->actingAs($jefatura)
+            ->delete(route('documents.destroy', $otherDoc))
+            ->assertRedirect(route('folders.show', $folder));
+
+        $this->assertNotNull($otherDoc->fresh()->deleted_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'document.deleted',
+            'target_id' => $otherDoc->id,
+            'actor_id' => $jefatura->id,
+        ]);
+
+        // Administrador puede eliminar documentos en carpetas.
+        $this->actingAs($admin)
+            ->delete(route('documents.destroy', $adminTargetDoc))
+            ->assertRedirect(route('folders.show', $folder));
+
+        $this->assertNotNull($adminTargetDoc->fresh()->deleted_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'document.deleted',
+            'target_id' => $adminTargetDoc->id,
+            'actor_id' => $admin->id,
+        ]);
+
+        // Regla DENY absoluto: si la carpeta tiene DENY, ni Colaborador (creador) ni Jefatura pueden eliminar.
+        $subDenied = Folder::create(['name' => 'Restringida', 'parent_id' => $folder->id, 'created_by' => $admin->id]);
+        $colabDocUpload = $this->actingAs($colaboradorUno)->postJson(route('documents.store', $subDenied), [
+            'file' => UploadedFile::fake()->create('Bloqueado.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $blockedDoc = Document::findOrFail($colabDocUpload->json('id'));
+
+        $this->permissions->denyAccess($subDenied, $colaboradorUno, $admin);
+        $this->permissions->denyAccess($subDenied, $jefatura, $admin);
+
+        $this->actingAs($colaboradorUno)->delete(route('documents.destroy', $blockedDoc))->assertForbidden();
+        $this->actingAs($jefatura)->delete(route('documents.destroy', $blockedDoc))->assertForbidden();
+        $this->assertSame(Document::STATUS_ACTIVE, $blockedDoc->fresh()->status);
+    }
 }

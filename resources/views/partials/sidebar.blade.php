@@ -54,7 +54,7 @@
             <a class="ta-nav-link {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}"
                href="{{ $auditHref }}"
                title="Auditoría">
-                <i data-lucide="shield-check" class="ta-icon"></i>
+               <i data-lucide="shield-check" class="ta-icon"></i>
                 <span class="ta-nav-link-text">Auditoría</span>
             </a>
         @endrole
