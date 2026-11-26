@@ -30,12 +30,10 @@
         <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
             <div class="ta-auth-card">
                 <div class="mb-4">
-                    <div class="d-inline-flex align-items-center gap-2 mb-3">
-                        <span class="ta-brand-icon" style="width: 36px; height: 36px;">
-                            <i data-lucide="folder-lock" class="ta-icon"></i>
-                        </span>
-                        <span class="ta-brand-name" style="font-size: 20px;">SDR</span>
-                        <span class="ta-brand-tag">v2</span>
+                    <div class="d-flex justify-content-center align-items-center text-center mb-4">
+                        <img src="{{ asset('images/brand/logo-version-azul.png') }}"
+                             alt="SDR Servicios"
+                             style="width: 350px; max-width: 100%; height: auto; object-fit: contain; display: block;">
                     </div>
                     <h1 class="ta-page-title mb-1" style="font-size: 1.5rem;">@yield('auth-title')</h1>
                     <p class="ta-page-subtitle mb-0">@yield('auth-subtitle')</p>
