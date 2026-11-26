@@ -56,6 +56,11 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::get('/users/{user}/avatar', [ProfileController::class, 'showAvatar'])->name('users.avatar');
 
+    // Exportación CSV de auditoría (solo Administrador)
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export'])
+        ->middleware('role:Administrador')
+        ->name('audit-logs.export');
+
     // Administración (solo Administrador)
     Route::middleware('role:Administrador')
         ->prefix('admin')

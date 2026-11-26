@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('documents:clean-orphans')->daily();
 Schedule::command('documents:purge-trash')->daily();
+Schedule::command('audit:archive')->monthly();

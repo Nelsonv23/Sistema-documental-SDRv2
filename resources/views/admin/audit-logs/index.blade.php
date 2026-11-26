@@ -11,6 +11,13 @@
 @section('page-title', 'Registro de auditoría')
 @section('page-subtitle', 'Bitácora inmutable de accesos, permisos, documentos y cambios administrativos.')
 
+@section('page-actions')
+    <a href="{{ route('audit-logs.export', request()->query()) }}" class="btn btn-outline-primary">
+        <i data-lucide="download" class="ta-icon-sm"></i>
+        <span>Exportar CSV</span>
+    </a>
+@endsection
+
 @section('content')
     <div class="ta-card mb-4">
         <div class="ta-card-header">

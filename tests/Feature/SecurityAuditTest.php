@@ -114,6 +114,7 @@ class SecurityAuditTest extends TestCase
         $this->get(route('admin.trash.index'))->assertRedirect('/login');
         $this->post(route('admin.trash.restore', $doc))->assertRedirect('/login');
         $this->get(route('admin.audit-logs.index'))->assertRedirect('/login');
+        $this->get(route('audit-logs.export'))->assertRedirect('/login');
     }
 
     public function test_non_administrators_receive_http_403_across_all_admin_routes(): void
@@ -159,6 +160,7 @@ class SecurityAuditTest extends TestCase
             $this->actingAs($nonAdmin)->get(route('admin.trash.index'))->assertForbidden();
             $this->actingAs($nonAdmin)->post(route('admin.trash.restore', $trashedDoc))->assertForbidden();
             $this->actingAs($nonAdmin)->get(route('admin.audit-logs.index'))->assertForbidden();
+            $this->actingAs($nonAdmin)->get(route('audit-logs.export'))->assertForbidden();
         }
 
         // Administrador sí tiene acceso a los módulos administrativos.
@@ -492,5 +494,126 @@ class SecurityAuditTest extends TestCase
         $this->assertSame($emptyRootPath, $auditLog->metadata['path']);
         $this->assertDatabaseHas('audit_logs', ['target_id' => $jefSubId, 'action' => 'folder.deleted']);
         $this->assertSame('/'.$root->id.'/'.$parent->id.'/'.$jefSubId.'/', $jefSubPath);
+    }
+
+    public function test_audit_log_csv_export_respects_filters_and_logs_audit_exported(): void
+    {
+        $admin = $this->createUserWithRole('Administrador', true);
+        $admin->forceFill(['name' => 'María Ñandú', 'email' => 'maria-audit@sdr.local'])->save();
+
+        \App\Models\AuditLog::create([
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'action' => 'document.uploaded',
+            'target_type' => \App\Models\Document::class,
+            'target_id' => 101,
+            'target_label' => 'Resolución N° 1.pdf',
+            'metadata' => ['folder_id' => 5],
+            'ip_address' => '127.0.0.1',
+            'created_at' => now()->subDays(2),
+        ]);
+
+        \App\Models\AuditLog::create([
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'action' => 'login',
+            'target_type' => User::class,
+            'target_id' => $admin->id,
+            'target_label' => $admin->name,
+            'ip_address' => '127.0.0.1',
+            'created_at' => now()->subDay(),
+        ]);
+
+        // Vista index incluye botón Exportar CSV conservando filtros.
+        $this->actingAs($admin)
+            ->get(route('admin.audit-logs.index', ['action' => 'document.uploaded']))
+            ->assertOk()
+            ->assertSee('Exportar CSV')
+            ->assertSee(route('audit-logs.export', ['action' => 'document.uploaded']), false);
+
+        // Exportación CSV con filtro devuelve 200 OK, text/csv, BOM UTF-8 y solo eventos coincidentes.
+        $response = $this->actingAs($admin)->get(route('audit-logs.export', [
+            'action' => 'document.uploaded',
+        ]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+
+        $csv = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
+        $this->assertStringContainsString('ID;"Fecha y Hora";Actor;"Correo Actor";', $csv);
+        $this->assertStringContainsString('Resolución N° 1.pdf', $csv);
+        $this->assertStringContainsString('María Ñandú', $csv);
+        $this->assertStringNotContainsString(';login;', $csv);
+
+        $exportAudit = \App\Models\AuditLog::where('action', 'audit.exported')
+            ->where('actor_id', $admin->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($exportAudit);
+        $this->assertSame(['action' => 'document.uploaded'], $exportAudit->metadata['filters']);
+    }
+
+    public function test_audit_archive_command_backs_up_old_logs_to_private_gzip_and_preserves_recent_logs(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador');
+
+        $oldLog = \App\Models\AuditLog::create([
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'action' => 'document.viewed',
+            'target_type' => \App\Models\Document::class,
+            'target_id' => 77,
+            'target_label' => 'Historico_2024.pdf',
+            'metadata' => ['folder_id' => 9],
+            'ip_address' => '10.0.0.5',
+            'created_at' => now()->subDays(400),
+        ]);
+
+        $recentLog = \App\Models\AuditLog::create([
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'action' => 'document.uploaded',
+            'target_type' => \App\Models\Document::class,
+            'target_id' => 88,
+            'target_label' => 'Reciente_2026.pdf',
+            'ip_address' => '10.0.0.6',
+            'created_at' => now()->subDays(15),
+        ]);
+
+        $this->artisan('audit:archive', ['--days' => 365])
+            ->assertSuccessful();
+
+        // El registro antiguo fue respaldado y eliminado de la tabla activa; el reciente permanece intacto.
+        $this->assertDatabaseMissing('audit_logs', ['id' => $oldLog->id]);
+        $this->assertDatabaseHas('audit_logs', ['id' => $recentLog->id]);
+
+        $archiveAudit = \App\Models\AuditLog::where('action', 'audit.archived')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($archiveAudit);
+        $this->assertSame(1, $archiveAudit->metadata['archived_count']);
+        $this->assertSame(365, $archiveAudit->metadata['retention_days']);
+
+        $archivePath = $archiveAudit->metadata['archive_path'];
+        $this->assertStringStartsWith('audit-archives/audit_logs_', $archivePath);
+        $this->assertStringEndsWith('.csv.gz', $archivePath);
+
+        Storage::disk('local')->assertExists($archivePath);
+
+        $compressed = Storage::disk('local')->get($archivePath);
+        $decompressed = gzdecode((string) $compressed);
+        $this->assertIsString($decompressed);
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $decompressed);
+        $this->assertStringContainsString('Historico_2024.pdf', $decompressed);
+        $this->assertStringNotContainsString('Reciente_2026.pdf', $decompressed);
     }
 }
