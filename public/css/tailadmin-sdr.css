@@ -1,0 +1,1108 @@
+/* ==========================================================================
+   SDR v2 — Sistema de Diseño TailAdmin (vue-demo.tailadmin.com)
+   Stack: Bootstrap 5.3 + Outfit + Lucide Icons + Alpine.js (sin Vite/Node)
+   ========================================================================== */
+
+:root {
+  /* Brand Indigo TailAdmin */
+  --ta-brand-500: #465FFF;
+  --ta-brand-600: #3641F5;
+  --ta-brand-50: #ECF3FF;
+  --ta-brand-100: #DDE9FF;
+  --ta-brand-400: #7592FF;
+
+  /* Superficies Light Mode */
+  --ta-bg-body: #F9FAFB;
+  --ta-bg-surface: #FFFFFF;
+  --ta-bg-subtle: #F9FAFB;
+  --ta-bg-hover: #F2F4F7;
+
+  /* Bordes */
+  --ta-border-light: #E4E7EC;
+  --ta-border-input: #D0D5DD;
+
+  /* Textos */
+  --ta-text-primary: #101828;
+  --ta-text-heading: #1D2939;
+  --ta-text-body: #344054;
+  --ta-text-muted: #667085;
+  --ta-text-caption: #98A2B3;
+
+  /* Semánticos */
+  --ta-success-bg: #ECFDF3;
+  --ta-success-text: #039855;
+  --ta-danger-bg: #FEF3F2;
+  --ta-danger-text: #D92D20;
+  --ta-warning-bg: #FFFAEB;
+  --ta-warning-text: #DC6803;
+  --ta-info-bg: #EFF8FF;
+  --ta-info-text: #175CD3;
+
+  /* Geometría */
+  --ta-sidebar-width: 290px;
+  --ta-sidebar-collapsed-width: 90px;
+  --ta-header-height: 76px;
+  --ta-shadow-card: 0px 1px 3px rgba(16, 24, 40, 0.03), 0px 1px 2px rgba(16, 24, 40, 0.02);
+  --ta-shadow-dropdown: 0 12px 24px -4px rgba(16, 24, 40, 0.08), 0 4px 8px -2px rgba(16, 24, 40, 0.03);
+
+  /* Overrides Bootstrap 5.3 */
+  --bs-primary: #465FFF;
+  --bs-primary-rgb: 70, 95, 255;
+  --bs-link-color: #465FFF;
+  --bs-link-hover-color: #3641F5;
+  --bs-body-color: var(--ta-text-body);
+  --bs-body-bg: var(--ta-bg-body);
+  --bs-border-color: var(--ta-border-light);
+  --bs-body-font-family: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-theme="dark"] {
+  --ta-bg-body: #101828;
+  --ta-bg-surface: #171F2E;
+  --ta-bg-subtle: #1D2939;
+  --ta-bg-hover: #1E293B;
+  --ta-border-light: #1D2939;
+  --ta-border-input: #344054;
+  --ta-text-primary: #F9FAFB;
+  --ta-text-heading: #F9FAFB;
+  --ta-text-body: #D0D5DD;
+  --ta-text-muted: #98A2B3;
+  --ta-text-caption: #667085;
+  --ta-brand-50: rgba(70, 95, 255, 0.16);
+  --ta-brand-100: rgba(70, 95, 255, 0.25);
+  --ta-success-bg: rgba(3, 152, 85, 0.16);
+  --ta-success-text: #32D583;
+  --ta-danger-bg: rgba(217, 45, 32, 0.16);
+  --ta-danger-text: #F97066;
+  --ta-warning-bg: rgba(220, 104, 3, 0.16);
+  --ta-warning-text: #FDB022;
+  --ta-info-bg: rgba(23, 92, 211, 0.18);
+  --ta-info-text: #7592FF;
+
+  --bs-body-color: var(--ta-text-body);
+  --bs-body-bg: var(--ta-bg-body);
+  --bs-border-color: var(--ta-border-light);
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+  background-color: var(--ta-bg-body);
+  color: var(--ta-text-body);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--ta-text-primary);
+  font-family: var(--bs-body-font-family);
+}
+
+a {
+  color: var(--ta-brand-500);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--ta-brand-600);
+}
+
+.text-muted {
+  color: var(--ta-text-muted) !important;
+}
+
+.text-dark {
+  color: var(--ta-text-primary) !important;
+}
+
+/* ---------- Lucide Iconos ---------- */
+.ta-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+
+.ta-icon-sm {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+
+.ta-icon-xs {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+
+/* ---------- Micro-animaciones ---------- */
+@keyframes taSlideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu.show,
+.modal.show .modal-dialog {
+  animation: taSlideUpFade 180ms ease-out;
+}
+
+/* ---------- Banner global de conectividad ---------- */
+.ta-network-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1095;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.ta-network-banner--offline {
+  background-color: #B42318;
+  color: #FFFFFF;
+}
+
+.ta-network-banner--online {
+  background-color: #027A48;
+  color: #FFFFFF;
+}
+
+/* ---------- Shell TailAdmin: Sidebar + Wrapper + Header ---------- */
+.ta-shell {
+  min-height: 100vh;
+  display: flex;
+  background-color: var(--ta-bg-body);
+}
+
+.ta-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--ta-sidebar-width);
+  background-color: var(--ta-bg-surface);
+  border-right: 1px solid var(--ta-border-light);
+  z-index: 1040;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ta-sidebar-header {
+  height: var(--ta-header-height);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.ta-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.ta-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: var(--ta-brand-500);
+  color: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.ta-brand-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ta-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.ta-brand-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background-color: var(--ta-brand-50);
+  color: var(--ta-brand-500);
+}
+
+[data-theme="dark"] .ta-brand-tag {
+  color: var(--ta-brand-400);
+}
+
+.ta-sidebar-nav {
+  padding: 0.75rem 1.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ta-nav-group-label {
+  padding: 1rem 0.75rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ta-text-caption);
+  white-space: nowrap;
+}
+
+.ta-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ta-text-body);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ta-nav-link:hover {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.ta-nav-link .ta-icon {
+  color: var(--ta-text-muted);
+  transition: color 0.15s ease;
+}
+
+.ta-nav-link:hover .ta-icon {
+  color: var(--ta-text-primary);
+}
+
+.ta-nav-link.active {
+  background-color: var(--ta-brand-50);
+  color: var(--ta-brand-500);
+  font-weight: 600;
+}
+
+.ta-nav-link.active .ta-icon {
+  color: var(--ta-brand-500);
+}
+
+[data-theme="dark"] .ta-nav-link.active {
+  color: var(--ta-brand-400);
+}
+
+[data-theme="dark"] .ta-nav-link.active .ta-icon {
+  color: var(--ta-brand-400);
+}
+
+/* Colapso desktop (90px) */
+.ta-main-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--ta-sidebar-width);
+  transition: padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 992px) {
+  body.ta-sidebar-collapsed .ta-sidebar {
+    width: var(--ta-sidebar-collapsed-width);
+  }
+
+  body.ta-sidebar-collapsed .ta-main-area {
+    padding-left: var(--ta-sidebar-collapsed-width);
+  }
+
+  body.ta-sidebar-collapsed .ta-sidebar-header {
+    justify-content: center;
+    padding: 0;
+  }
+
+  body.ta-sidebar-collapsed .ta-brand-text-wrap,
+  body.ta-sidebar-collapsed .ta-nav-group-label,
+  body.ta-sidebar-collapsed .ta-nav-link-text {
+    display: none;
+  }
+
+  body.ta-sidebar-collapsed .ta-sidebar-nav {
+    padding: 0.75rem 1rem 2rem;
+  }
+
+  body.ta-sidebar-collapsed .ta-nav-link {
+    justify-content: center;
+    padding: 12px;
+  }
+}
+
+/* Móvil (< 992px) */
+.ta-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  z-index: 1035;
+}
+
+@media (max-width: 991.98px) {
+  .ta-main-area {
+    padding-left: 0;
+  }
+
+  .ta-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .ta-sidebar.is-open {
+    transform: translateX(0);
+  }
+}
+
+/* ---------- Header sticky TailAdmin (76px, blur) ---------- */
+.ta-header {
+  position: sticky;
+  top: 0;
+  height: var(--ta-header-height);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--ta-border-light);
+  z-index: 1020;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+[data-theme="dark"] .ta-header {
+  background-color: rgba(23, 31, 46, 0.92);
+}
+
+.ta-square-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ta-square-btn:hover {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.ta-circle-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ta-circle-btn:hover,
+.ta-circle-btn[aria-expanded="true"] {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.ta-notif-dot {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background-color: #FD853A;
+  border: 2px solid var(--ta-bg-surface);
+}
+
+.ta-search-box {
+  position: relative;
+  width: 380px;
+  max-width: 100%;
+}
+
+.ta-search-box__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ta-text-muted);
+  pointer-events: none;
+}
+
+.ta-search-box__input {
+  width: 100%;
+  height: 44px;
+  padding: 0 72px 0 42px;
+  border-radius: 10px;
+  border: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-primary);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ta-search-box__input::placeholder {
+  color: var(--ta-text-muted);
+}
+
+.ta-search-box__input:focus {
+  outline: none;
+  border-color: var(--ta-brand-500);
+  box-shadow: 0 0 0 4px rgba(70, 95, 255, 0.12);
+}
+
+.ta-search-box__kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-subtle);
+  color: var(--ta-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* ---------- Perfil y Dropdowns Header ---------- */
+.ta-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 6px 2px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ta-text-primary);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.ta-profile-btn::after {
+  display: none !important;
+}
+
+.ta-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 1px solid var(--ta-border-light);
+  flex-shrink: 0;
+}
+
+.ta-avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background-color: var(--ta-brand-500);
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ta-avatar-initials--sm {
+  width: 36px;
+  height: 36px;
+  font-size: 0.78rem;
+}
+
+.ta-dropdown-menu {
+  width: 260px;
+  min-width: 260px;
+  background-color: var(--ta-bg-surface);
+  border: 1px solid var(--ta-border-light);
+  border-radius: 16px;
+  box-shadow: var(--ta-shadow-dropdown);
+  padding: 0;
+  overflow: hidden;
+  margin-top: 0.65rem !important;
+}
+
+.ta-dropdown-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ta-border-light);
+}
+
+.ta-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ta-text-body);
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ta-dropdown-item:hover {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.ta-dropdown-item--danger {
+  color: var(--ta-danger-text) !important;
+}
+
+.ta-dropdown-item--danger:hover {
+  background-color: var(--ta-danger-bg);
+}
+
+.ta-dropdown-divider {
+  height: 1px;
+  background-color: var(--ta-border-light);
+  margin: 0;
+}
+
+/* ---------- Contenido y Footer ---------- */
+.ta-content {
+  flex: 1;
+  padding: 1.75rem 1.75rem 2.5rem;
+  max-width: 1536px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 767.98px) {
+  .ta-header {
+    padding: 0 1rem;
+  }
+
+  .ta-content {
+    padding: 1.25rem 1rem 2rem;
+  }
+}
+
+.ta-footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* ---------- Page Header TailAdmin ---------- */
+.ta-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ta-page-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--ta-text-primary);
+  margin: 0;
+}
+
+.ta-page-subtitle {
+  font-size: 0.875rem;
+  color: var(--ta-text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.ta-page-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.ta-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.ta-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ta-text-muted);
+}
+
+.ta-breadcrumb li a {
+  color: var(--ta-text-muted);
+  font-weight: 500;
+}
+
+.ta-breadcrumb li a:hover {
+  color: var(--ta-brand-500);
+}
+
+.ta-breadcrumb li.active {
+  color: var(--ta-text-primary);
+  font-weight: 500;
+}
+
+.ta-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+@media (max-width: 767.98px) {
+  .ta-page-header-right {
+    align-items: flex-start;
+  }
+}
+
+/* ---------- Cards TailAdmin ---------- */
+.card,
+.ta-card {
+  background-color: var(--ta-bg-surface);
+  border: 1px solid var(--ta-border-light);
+  border-radius: 16px;
+  box-shadow: var(--ta-shadow-card);
+  color: var(--ta-text-body);
+}
+
+.ta-card-header,
+.card .card-header {
+  padding: 20px 24px;
+  background-color: var(--ta-bg-surface);
+  border-bottom: 1px solid var(--ta-border-light);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.ta-card-title,
+.card .card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ta-text-primary);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.ta-card-subtitle {
+  font-size: 0.8125rem;
+  color: var(--ta-text-muted);
+  margin: 0.2rem 0 0;
+}
+
+.ta-card-body,
+.card .card-body {
+  padding: 24px;
+}
+
+.ta-card-footer,
+.card .card-footer {
+  padding: 16px 24px;
+  background-color: var(--ta-bg-subtle);
+  border-top: 1px solid var(--ta-border-light);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+/* ---------- Stat Cards ---------- */
+.ta-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.ta-stat-icon--brand {
+  background-color: var(--ta-brand-50);
+  color: var(--ta-brand-500);
+}
+
+[data-theme="dark"] .ta-stat-icon--brand {
+  color: var(--ta-brand-400);
+}
+
+/* ---------- Formularios e Inputs ---------- */
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ta-text-body);
+  margin-bottom: 0.45rem;
+}
+
+.form-control,
+.form-select {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--ta-border-input);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-primary);
+  font-size: 0.875rem;
+  padding: 0.55rem 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control::placeholder {
+  color: var(--ta-text-caption);
+  opacity: 1;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ta-brand-500);
+  box-shadow: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-primary);
+  outline: none;
+}
+
+.form-control[readonly],
+.form-control:disabled,
+.form-select:disabled {
+  background-color: var(--ta-bg-subtle);
+  border-color: var(--ta-border-light);
+  color: var(--ta-text-muted);
+  opacity: 1;
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 104px;
+}
+
+.form-control-sm,
+.form-select-sm {
+  height: 36px;
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+input[type="file"].form-control {
+  padding: 0.4rem 0.75rem;
+}
+
+input[type="file"].form-control::file-selector-button {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+  border: 0;
+  border-right: 1px solid var(--ta-border-input);
+  padding: 0.55rem 0.9rem;
+  margin: -0.4rem 0.85rem -0.4rem -0.75rem;
+  font-weight: 500;
+  font-size: 0.825rem;
+  cursor: pointer;
+}
+
+.form-check-input {
+  border-color: var(--ta-border-input);
+  background-color: var(--ta-bg-surface);
+}
+
+.form-check-input:checked {
+  background-color: var(--ta-brand-500);
+  border-color: var(--ta-brand-500);
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 4px rgba(70, 95, 255, 0.12);
+}
+
+/* ---------- Botones TailAdmin ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 8px;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-sm {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+  border-radius: 7px;
+}
+
+.btn-primary {
+  background-color: var(--ta-brand-500);
+  border-color: var(--ta-brand-500);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--ta-brand-600);
+  border-color: var(--ta-brand-600);
+  color: #FFFFFF;
+}
+
+.btn-outline-primary {
+  color: var(--ta-brand-500);
+  border-color: var(--ta-brand-500);
+  background-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--ta-brand-50);
+  border-color: var(--ta-brand-500);
+  color: var(--ta-brand-600);
+}
+
+.btn-outline-secondary {
+  background-color: var(--ta-bg-surface);
+  border-color: var(--ta-border-input);
+  color: var(--ta-text-body);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background-color: var(--ta-bg-hover);
+  border-color: var(--ta-border-input);
+  color: var(--ta-text-primary);
+}
+
+/* ---------- Tablas TailAdmin (.ta-table) ---------- */
+.table.ta-table {
+  margin-bottom: 0;
+  color: var(--ta-text-body);
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--ta-bg-subtle);
+}
+
+.table.ta-table > thead > tr > th {
+  background-color: var(--ta-bg-subtle);
+  color: var(--ta-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--ta-border-light);
+  padding: 13px 20px;
+  vertical-align: middle;
+}
+
+.table.ta-table > tbody > tr > td {
+  color: var(--ta-text-body);
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--ta-border-light);
+  padding: 16px 20px;
+  vertical-align: middle;
+  font-size: 0.875rem;
+}
+
+.table.ta-table > tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+/* ---------- Badges tipo píldora ---------- */
+.ta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ta-badge-brand {
+  background-color: var(--ta-brand-50);
+  color: var(--ta-brand-500);
+}
+
+.ta-badge-success {
+  background-color: var(--ta-success-bg);
+  color: var(--ta-success-text);
+}
+
+.ta-badge-danger {
+  background-color: var(--ta-danger-bg);
+  color: var(--ta-danger-text);
+}
+
+.ta-badge-warning {
+  background-color: var(--ta-warning-bg);
+  color: var(--ta-warning-text);
+}
+
+.ta-badge-info {
+  background-color: var(--ta-info-bg);
+  color: var(--ta-info-text);
+}
+
+.ta-badge-neutral {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-body);
+}
+
+/* ---------- Modales & Paginación ---------- */
+.modal-content {
+  background-color: var(--ta-bg-surface);
+  border: 1px solid var(--ta-border-light);
+  border-radius: 16px;
+  color: var(--ta-text-body);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--ta-border-light);
+  padding: 20px 24px;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--ta-border-light);
+  background-color: var(--ta-bg-subtle);
+  padding: 16px 24px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.pagination .page-link {
+  background-color: var(--ta-bg-surface);
+  color: var(--ta-text-body);
+  border-color: var(--ta-border-light);
+  font-weight: 500;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--ta-brand-500);
+  border-color: var(--ta-brand-500);
+  color: #FFFFFF;
+}
+
+/* ---------- Empty State & Dropzone ---------- */
+.ta-empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+}
+
+.ta-empty-state__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  background-color: var(--ta-brand-50);
+  color: var(--ta-brand-500);
+  margin-bottom: 1rem;
+}
+
+.ta-dropzone {
+  border: 2px dashed var(--ta-border-input);
+  border-radius: 14px;
+  background-color: var(--ta-bg-subtle);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ta-dropzone.is-dragging {
+  border-color: var(--ta-brand-500);
+  background-color: var(--ta-brand-50);
+}
+
+/* ---------- Auth Split Screen TailAdmin ---------- */
+.ta-auth-shell {
+  min-height: 100vh;
+  background-color: var(--ta-bg-body);
+}
+
+.ta-auth-panel {
+  background-color: #101828;
+  background-image: linear-gradient(135deg, rgba(16, 24, 40, 0.85), rgba(23, 31, 46, 0.78)),
+    url('../images/brand/background-login-derecho.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #FFFFFF;
+}
+
+.ta-auth-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--ta-bg-surface);
+  border: 1px solid var(--ta-border-light);
+  border-radius: 16px;
+  box-shadow: var(--ta-shadow-card);
+  padding: 2.25rem 2rem;
+}
