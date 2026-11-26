@@ -17,6 +17,15 @@
   --ta-bg-subtle: #F9FAFB;
   --ta-bg-hover: #F2F4F7;
 
+  /* Sidebar Corporativo Azul */
+  --ta-sidebar-bg: #eef3fa;
+  --ta-sidebar-border: #d4e0f0;
+  --ta-sidebar-group-color: #5c7293;
+  --ta-sidebar-item-color: #1e3250;
+  --ta-sidebar-icon-color: #4a648a;
+  --ta-sidebar-hover-bg: #dbe6f6;
+  --ta-sidebar-hover-color: #163b75;
+
   /* Bordes */
   --ta-border-light: #E4E7EC;
   --ta-border-input: #D0D5DD;
@@ -61,6 +70,13 @@
   --ta-bg-surface: #171F2E;
   --ta-bg-subtle: #1D2939;
   --ta-bg-hover: #1E293B;
+  --ta-sidebar-bg: #171F2E;
+  --ta-sidebar-border: #1D2939;
+  --ta-sidebar-group-color: #98A2B3;
+  --ta-sidebar-item-color: #D0D5DD;
+  --ta-sidebar-icon-color: #98A2B3;
+  --ta-sidebar-hover-bg: #1E293B;
+  --ta-sidebar-hover-color: #FFFFFF;
   --ta-border-light: #1D2939;
   --ta-border-input: #344054;
   --ta-text-primary: #F9FAFB;
@@ -200,8 +216,8 @@ a:hover {
   left: 0;
   bottom: 0;
   width: var(--ta-sidebar-width);
-  background-color: var(--ta-bg-surface);
-  border-right: 1px solid var(--ta-border-light);
+  background-color: var(--ta-sidebar-bg);
+  border-right: 1px solid var(--ta-sidebar-border);
   z-index: 1040;
   display: flex;
   flex-direction: column;
@@ -216,7 +232,14 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid var(--ta-sidebar-border);
   flex-shrink: 0;
+}
+
+[data-theme="dark"] .ta-sidebar-header .ta-brand-link {
+  background-color: rgba(255, 255, 255, 0.94);
+  border-radius: 10px;
+  padding: 6px 12px;
 }
 
 .ta-brand-link {
@@ -260,7 +283,7 @@ a:hover {
 }
 
 .ta-sidebar-nav {
-  padding: 0.75rem 1.25rem 2rem;
+  padding: 0.75rem 0.75rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -268,11 +291,12 @@ a:hover {
 
 .ta-nav-group-label {
   padding: 1rem 0.75rem 0.5rem;
+  margin: 0 0.5rem;
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ta-text-caption);
+  color: var(--ta-sidebar-group-color);
   white-space: nowrap;
 }
 
@@ -280,46 +304,54 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin: 0 0.5rem;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--ta-text-body);
+  color: var(--ta-sidebar-item-color);
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.18s ease;
 }
 
-.ta-nav-link:hover {
-  background-color: var(--ta-bg-hover);
-  color: var(--ta-text-primary);
+.ta-nav-link:not(.active):hover {
+  background-color: var(--ta-sidebar-hover-bg);
+  color: var(--ta-sidebar-hover-color);
+  transform: translateX(3px);
 }
 
 .ta-nav-link .ta-icon {
-  color: var(--ta-text-muted);
-  transition: color 0.15s ease;
+  color: var(--ta-sidebar-icon-color);
+  transition: color 0.18s ease;
 }
 
-.ta-nav-link:hover .ta-icon {
-  color: var(--ta-text-primary);
+.ta-nav-link:not(.active):hover .ta-icon {
+  color: var(--ta-sidebar-hover-color);
 }
 
 .ta-nav-link.active {
-  background-color: var(--ta-brand-50);
-  color: var(--ta-brand-500);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 4px 10px rgba(29, 78, 216, 0.22);
+}
+
+.ta-nav-link.active:hover {
+  color: #ffffff;
 }
 
 .ta-nav-link.active .ta-icon {
-  color: var(--ta-brand-500);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .ta-nav-link.active {
-  color: var(--ta-brand-400);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
 }
 
 [data-theme="dark"] .ta-nav-link.active .ta-icon {
-  color: var(--ta-brand-400);
+  color: #ffffff;
 }
 
 /* Colapso desktop (90px) */
@@ -358,7 +390,12 @@ a:hover {
 
   body.ta-sidebar-collapsed .ta-nav-link {
     justify-content: center;
+    margin: 0;
     padding: 12px;
+  }
+
+  body.ta-sidebar-collapsed .ta-nav-link:not(.active):hover {
+    transform: none;
   }
 }
 
