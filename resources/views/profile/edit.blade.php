@@ -168,7 +168,7 @@
                 <div class="ta-card-header">
                     <h2 class="ta-card-title">Foto de perfil</h2>
                     <p class="ta-card-subtitle">
-                        Almacenada en disco privado fuera del directorio público. Formatos JPG, PNG o WebP (máx. 2 MB).
+                        Personaliza tu avatar corporativo. Tu imagen se resguarda en almacenamiento privado.
                     </p>
                 </div>
 
@@ -211,7 +211,7 @@
                                    class="form-control @error('avatar') is-invalid @enderror"
                                    x-on:change="hasFile = $event.target.files.length > 0 && $event.target.files[0].size > 0; clientError = ($event.target.files.length > 0 && $event.target.files[0].size === 0) ? 'El archivo seleccionado está vacío (0 bytes).' : '';"
                                    required>
-                            <div class="form-text mt-2">Formatos permitidos: JPG, PNG o WebP — máximo 2 MB.</div>
+                            <div class="form-text mt-2">JPG, PNG o WebP · Recomendado 400 × 400 px (1:1) · Máx. 2 MB</div>
                             <div class="text-danger small mt-1" x-show="clientError" x-text="clientError" x-cloak></div>
                         </div>
 
