@@ -429,9 +429,17 @@ class AuditTrashCommentsNotificationsTest extends TestCase
         $this->actingAs($colaboradorA)
             ->get(route('notifications.index'))
             ->assertOk()
+            ->assertDontSee('Historial de notificaciones')
+            ->assertSee('1 aviso')
+            ->assertSee('1 sin leer')
             ->assertSee('Admin Publicador comentó en')
             ->assertSee('Circular_Interna.pdf')
             ->assertSee(route('notifications.open', $notifA), false);
+
+        $this->actingAs($colaboradorA)
+            ->get(route('notifications.index', ['filter' => 'unread']))
+            ->assertOk()
+            ->assertSee('Circular_Interna.pdf');
 
         // Colaborador B con DENY no recibe notificación alguna.
         $this->actingAs($colaboradorB)

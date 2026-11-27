@@ -47,8 +47,21 @@ class NotificationController extends Controller
 
     public function index(Request $request): View
     {
+        $userId = (int) $request->user()->id;
+        $filter = $request->string('filter')->toString() === 'unread' ? 'unread' : 'all';
+
+        $unreadCount = Notification::query()
+            ->where('user_id', $userId)
+            ->whereNull('read_at')
+            ->count();
+
+        $totalCount = Notification::query()
+            ->where('user_id', $userId)
+            ->count();
+
         $notifications = Notification::query()
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $userId)
+            ->when($filter === 'unread', static fn ($query) => $query->whereNull('read_at'))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(20)
@@ -56,6 +69,9 @@ class NotificationController extends Controller
 
         return view('notifications.index', [
             'notifications' => $notifications,
+            'filter' => $filter,
+            'unreadCount' => $unreadCount,
+            'totalCount' => $totalCount,
         ]);
     }
 

@@ -9,7 +9,7 @@
 @endsection
 
 @section('page-title', 'Notificaciones')
-@section('page-subtitle', 'Avisos recientes sobre comentarios y restauraciones en tus documentos.')
+@section('page-subtitle', 'Mantente al día con comentarios y novedades relevantes en tus documentos autorizados.')
 
 @section('page-actions')
     <form method="POST" action="{{ route('notifications.mark-read') }}">
@@ -23,12 +23,28 @@
 
 @section('content')
     <div class="ta-card">
-        <div class="ta-card-header d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="ta-card-title">Historial de notificaciones</h2>
-                <p class="ta-card-subtitle">Actividad reciente relacionada con tus documentos.</p>
+        <div class="ta-card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+            <div class="d-inline-flex align-items-center gap-2" role="group" aria-label="Filtrar notificaciones">
+                <a href="{{ route('notifications.index') }}"
+                   class="btn btn-sm {{ $filter === 'all' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    Todas
+                </a>
+                <a href="{{ route('notifications.index', ['filter' => 'unread']) }}"
+                   class="btn btn-sm {{ $filter === 'unread' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    Sin leer
+                </a>
             </div>
-            <span class="ta-badge ta-badge-brand">{{ $notifications->total() }} {{ $notifications->total() === 1 ? 'notificación' : 'notificaciones' }}</span>
+
+            <div class="d-inline-flex align-items-center gap-2">
+                <span class="ta-badge ta-badge-neutral">
+                    {{ $totalCount }} {{ $totalCount === 1 ? 'aviso' : 'avisos' }}
+                </span>
+                @if ($unreadCount > 0)
+                    <span class="ta-badge ta-badge-danger">
+                        {{ $unreadCount }} sin leer
+                    </span>
+                @endif
+            </div>
         </div>
 
         @if ($notifications->isEmpty())
@@ -36,18 +52,22 @@
                 <div class="ta-empty-state__icon">
                     <i data-lucide="bell" class="ta-icon"></i>
                 </div>
-                <h5 class="mb-1">Sin notificaciones</h5>
-                <p class="small mb-0" style="color: var(--ta-text-muted);">Aquí aparecerán los avisos de actividad relevante para tu cuenta.</p>
+                <h5 class="mb-1">
+                    {{ $filter === 'unread' ? 'Sin notificaciones pendientes' : 'Sin notificaciones' }}
+                </h5>
+                <p class="small mb-0" style="color: var(--ta-text-muted);">
+                    {{ $filter === 'unread' ? 'Ya revisaste todos los avisos recientes.' : 'Aquí aparecerán los avisos de actividad relevante para tu cuenta.' }}
+                </p>
             </div>
         @else
-            <div class="divide-y">
+            <div>
                 @foreach ($notifications as $notification)
-                    <div class="p-4" style="border-bottom: 1px solid var(--ta-border-light); {{ $notification->read_at === null ? 'background-color: var(--ta-bg-subtle);' : '' }}">
+                    <div class="p-4" style="border-bottom: 1px solid var(--sdr-border-color); {{ $notification->read_at === null ? 'background-color: var(--sdr-surface-subtle);' : '' }}">
                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                            <div>
+                            <div style="min-width: 0; flex: 1;">
                                 <div class="d-flex align-items-center gap-2">
                                     @if ($notification->read_at === null)
-                                        <span class="ta-badge ta-badge-info">Nueva</span>
+                                        <span class="sdr-notif-unread-dot" aria-hidden="true"></span>
                                     @endif
                                     <span class="fw-semibold" style="color: var(--ta-text-primary);">{{ $notification->title }}</span>
                                 </div>
@@ -59,7 +79,7 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-shrink-0">
                                 @if (! empty($notification->data['url']))
                                     <a href="{{ route('notifications.open', $notification) }}" class="btn btn-sm btn-outline-primary">
                                         Abrir
