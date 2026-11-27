@@ -100,17 +100,35 @@
                 <i data-lucide="bell" class="ta-icon"></i>
                 <span x-cloak
                       x-show="unreadCount > 0"
-                      class="ta-notif-badge"
+                      class="sdr-notif-badge sdr-notif-badge--bell"
                       x-text="unreadCount > 99 ? '99+' : unreadCount"></span>
             </button>
 
-            <div class="dropdown-menu dropdown-menu-end ta-dropdown-menu ta-notif-dropdown" aria-labelledby="notificationDropdown">
-                <div class="ta-dropdown-header d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold" style="color: var(--ta-text-primary);">Notificaciones</span>
-                    <span x-cloak x-show="unreadCount > 0" class="ta-badge ta-badge-brand" x-text="unreadCount + ' nuevas'"></span>
+            <div class="dropdown-menu dropdown-menu-end sdr-notif-dropdown" aria-labelledby="notificationDropdown">
+                {{-- Zona 1: Cabecera --}}
+                <div class="sdr-notif-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="sdr-notif-header-title">Notificaciones</span>
+                        <span x-cloak x-show="unreadCount > 0" class="sdr-notif-pill" x-text="unreadCount"></span>
+                    </div>
+
+                    @if (\Illuminate\Support\Facades\Route::has('notifications.mark-read'))
+                        <form x-cloak
+                              x-show="unreadCount > 0"
+                              method="POST"
+                              action="{{ route('notifications.mark-read') }}"
+                              class="m-0"
+                              @submit.prevent="markAllRead()">
+                            @csrf
+                            <button type="submit" class="btn btn-link p-0 border-0 sdr-notif-mark-btn">
+                                Marcar leídas
+                            </button>
+                        </form>
+                    @endif
                 </div>
 
-                <div style="max-height: 320px; overflow-y: auto;">
+                {{-- Zona 2: Cuerpo / Lista --}}
+                <div class="sdr-notif-body">
                     <template x-if="notifications.length === 0">
                         <div class="p-4 text-center small" style="color: var(--ta-text-muted);">
                             <i data-lucide="bell-off" class="ta-icon d-block mx-auto mb-2"></i>
@@ -120,36 +138,28 @@
 
                     <template x-for="item in notifications" :key="item.id">
                         <a :href="item.open_url"
-                           class="ta-notif-item"
-                           :class="{ 'ta-notif-item--unread': item.is_unread }">
-                            <div class="d-flex align-items-start justify-content-between gap-2">
-                                <span class="fw-semibold small" style="color: var(--ta-text-primary);" x-text="item.title"></span>
-                                <span x-show="item.is_unread" class="ta-badge ta-badge-info flex-shrink-0" style="font-size: 0.65rem; padding: 1px 6px;">Nueva</span>
+                           class="sdr-notif-item"
+                           :class="{ 'sdr-notif-item--unread': item.is_unread }">
+                            <div class="sdr-notif-item-title">
+                                <span x-show="item.is_unread" class="sdr-notif-unread-dot" aria-hidden="true"></span>
+                                <span x-text="item.title"></span>
                             </div>
-                            <p class="small mb-1 mt-1" style="color: var(--ta-text-body); line-height: 1.35;" x-show="item.body" x-text="item.body"></p>
-                            <div class="d-flex align-items-center justify-content-between" style="font-size: 0.72rem; color: var(--ta-text-muted);">
-                                <span x-text="item.time_ago"></span>
-                                <span class="fw-medium" style="color: #1d4ed8;">Abrir →</span>
+                            <p class="sdr-notif-item-desc" x-show="item.body" x-text="item.body"></p>
+                            <div class="sdr-notif-item-meta">
+                                <span class="sdr-notif-item-time" x-text="item.time_ago"></span>
+                                <span class="sdr-notif-item-action">Abrir →</span>
                             </div>
                         </a>
                     </template>
                 </div>
 
-                @if (\Illuminate\Support\Facades\Route::has('notifications.mark-read'))
-                    <template x-if="unreadCount > 0">
-                        <form method="POST" action="{{ route('notifications.mark-read') }}" class="p-2 border-bottom" style="border-color: var(--sdr-border-color) !important;">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
-                                Marcar todas como leídas
-                            </button>
-                        </form>
-                    </template>
-                @endif
-
+                {{-- Zona 3: Pie fijo --}}
                 @if (\Illuminate\Support\Facades\Route::has('notifications.index'))
-                    <a class="ta-dropdown-item justify-content-center fw-semibold" style="color: #1d4ed8;" href="{{ route('notifications.index') }}">
-                        Ver todas las notificaciones
-                    </a>
+                    <div class="sdr-notif-footer">
+                        <a href="{{ route('notifications.index') }}">
+                            Ver todas las notificaciones
+                        </a>
+                    </div>
                 @endif
             </div>
         </div>
@@ -160,6 +170,8 @@
                         unreadCount: initialCount || 0,
                         notifications: Array.isArray(initialNotifications) ? initialNotifications : [],
                         endpoint,
+                        markReadUrl: @js(\Illuminate\Support\Facades\Route::has('notifications.mark-read') ? route('notifications.mark-read') : ''),
+                        csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                         lastActivityAt: Date.now(),
                         pollIntervalId: null,
                         idleThresholdMs: 180000,
@@ -195,6 +207,34 @@
                                 }
                                 this.fetchUnreadCount();
                             }, this.pollIntervalMs);
+                        },
+
+                        async markAllRead() {
+                            if (!this.markReadUrl) {
+                                return;
+                            }
+
+                            try {
+                                const response = await fetch(this.markReadUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': this.csrfToken,
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({}),
+                                });
+
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    this.unreadCount = typeof data.unread_count === 'number' ? data.unread_count : 0;
+                                    this.notifications = this.notifications.map((item) => ({
+                                        ...item,
+                                        is_unread: false,
+                                    }));
+                                }
+                            } catch (_) {}
                         },
 
                         async fetchUnreadCount() {

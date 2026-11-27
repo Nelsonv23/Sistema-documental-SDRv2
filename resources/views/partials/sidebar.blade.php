@@ -72,7 +72,7 @@
             <span class="ta-nav-link-text d-inline-flex align-items-center justify-content-between flex-grow-1 gap-2">
                 <span>Notificaciones</span>
                 @if ($unreadNotificationsCount > 0)
-                    <span class="ta-sidebar-badge">{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
+                    <span class="sdr-notif-badge">{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
                 @endif
             </span>
         </a>

@@ -25,7 +25,7 @@
 
     {{-- Bootstrap 5.3 CSS + Sistema de diseño TailAdmin --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ asset('css/tailadmin-sdr.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/tailadmin-sdr.css') }}?v={{ @filemtime(public_path('css/tailadmin-sdr.css')) ?: '1' }}">
     <link rel="shortcut icon" href="{{ asset('assets/purple/images/favicon.png') }}">
 
     @stack('styles')

@@ -423,7 +423,8 @@ class AuditTrashCommentsNotificationsTest extends TestCase
             ->get(route('home'))
             ->assertOk()
             ->assertSee(route('notifications.index'), false)
-            ->assertSee('ta-sidebar-badge', false);
+            ->assertSee('sdr-notif-badge', false)
+            ->assertSee('sdr-notif-dropdown', false);
 
         $this->actingAs($colaboradorA)
             ->get(route('notifications.index'))
