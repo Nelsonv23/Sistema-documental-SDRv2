@@ -23,7 +23,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ asset('css/tailadmin-sdr.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/tailadmin-sdr.css') }}?v={{ @filemtime(public_path('css/tailadmin-sdr.css')) ?: '1' }}">
     <link rel="shortcut icon" href="{{ asset('assets/purple/images/favicon.png') }}">
 </head>
 <body>
@@ -34,7 +34,12 @@
                     <div class="d-flex justify-content-center align-items-center text-center mb-4 ta-auth-logo-wrap">
                         <img src="{{ asset('images/brand/logo-version-azul.png') }}"
                              alt="SDR Servicios"
-                             style="width: 350px; max-width: 100%; height: auto; object-fit: contain; display: block;">
+                             class="sdr-logo-light"
+                             style="width: 350px; max-width: 100%; height: auto; object-fit: contain;">
+                        <img src="{{ asset('images/brand/logo-sdr-blanco.png') }}"
+                             alt="SDR Servicios"
+                             class="sdr-logo-dark"
+                             style="width: 350px; max-width: 100%; height: auto; object-fit: contain;">
                     </div>
                     <h1 class="ta-page-title mb-1" style="font-size: 1.5rem;">@yield('auth-title')</h1>
                     <p class="ta-page-subtitle mb-0">@yield('auth-subtitle')</p>

@@ -267,10 +267,30 @@ a:hover {
   flex-shrink: 0;
 }
 
-[data-theme="dark"] .ta-sidebar-header .ta-brand-link {
-  background-color: rgba(255, 255, 255, 0.94);
-  border-radius: 10px;
-  padding: 6px 12px;
+[data-theme="dark"] .ta-sidebar-header .ta-brand-link,
+[data-bs-theme="dark"] .ta-sidebar-header .ta-brand-link,
+.dark-mode .ta-sidebar-header .ta-brand-link {
+  background: transparent !important;
+}
+
+.sdr-logo-light {
+  display: block;
+}
+
+.sdr-logo-dark {
+  display: none;
+}
+
+[data-theme="dark"] .sdr-logo-light,
+[data-bs-theme="dark"] .sdr-logo-light,
+.dark-mode .sdr-logo-light {
+  display: none !important;
+}
+
+[data-theme="dark"] .sdr-logo-dark,
+[data-bs-theme="dark"] .sdr-logo-dark,
+.dark-mode .sdr-logo-dark {
+  display: block !important;
 }
 
 .ta-brand-link {
@@ -1441,7 +1461,5 @@ input[type="file"].form-control::file-selector-button {
 [data-theme="dark"] .ta-auth-logo-wrap,
 [data-bs-theme="dark"] .ta-auth-logo-wrap,
 .dark-mode .ta-auth-logo-wrap {
-  background-color: rgba(255, 255, 255, 0.94);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
+  background: transparent;
 }

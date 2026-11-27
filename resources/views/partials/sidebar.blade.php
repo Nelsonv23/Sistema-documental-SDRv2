@@ -16,8 +16,13 @@
     <div class="ta-sidebar-header" style="display: flex; justify-content: flex-start; align-items: center; padding: 0; height: auto; min-height: 100px;">
         <a class="ta-brand-link" href="{{ $homeHref }}" style="display: flex; justify-content: flex-start; align-items: center; width: 100%; max-width: 100%; padding: 0; margin: 0;" title="SDR v2">
             <img src="{{ asset('images/brand/logo-version-azul.png') }}"
-                 alt="SDR v2"
-                 style="height: 100px; max-height: 100px; max-width: 100%; width: auto; object-fit: contain; display: block; margin: 0;">
+                 alt="SDR Servicios"
+                 class="sdr-logo-light"
+                 style="height: 100px; max-height: 100px; max-width: 100%; width: auto; object-fit: contain; margin: 0;">
+            <img src="{{ asset('images/brand/logo-sdr-blanco.png') }}"
+                 alt="SDR Servicios"
+                 class="sdr-logo-dark"
+                 style="height: 100px; max-height: 100px; max-width: 100%; width: auto; object-fit: contain; margin: 0;">
         </a>
     </div>
 
