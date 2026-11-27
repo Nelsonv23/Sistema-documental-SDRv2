@@ -941,6 +941,28 @@ a:hover {
   font-size: 0.8125rem;
 }
 
+.ta-footer-link {
+  color: var(--ta-text-primary);
+  transition: color 0.15s ease;
+}
+
+.ta-footer-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline !important;
+}
+
+[data-theme="dark"] .ta-footer-link,
+[data-bs-theme="dark"] .ta-footer-link,
+.dark-mode .ta-footer-link {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .ta-footer-link:hover,
+[data-bs-theme="dark"] .ta-footer-link:hover,
+.dark-mode .ta-footer-link:hover {
+  color: #7592FF;
+}
+
 /* ---------- Command Header estilo Orchid ---------- */
 .ta-page-header,
 .ta-command-header {
