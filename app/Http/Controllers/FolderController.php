@@ -39,8 +39,14 @@ class FolderController extends Controller
                     $query->whereNull('parent_id')
                         ->orWhereNotIn('parent_id', $accessibleIds);
                 })
+                ->withCount([
+                    'documents as active_documents_count' => static fn ($query) => $query->whereNull('deleted_at'),
+                    'children as accessible_children_count' => static fn ($query) => $query->whereIn('id', $accessibleIds),
+                ])
                 ->orderBy('name')
                 ->get();
+
+        $folderTree = $this->buildAccessibleTree($accessibleIds);
 
         $accessibleFoldersCount = count($accessibleIds);
         $rootFoldersCount = $accessibleIds === []
@@ -95,6 +101,9 @@ class FolderController extends Controller
         }
 
         return view('folders.index', [
+            'currentFolder' => null,
+            'folderTree' => $folderTree,
+            'expandedFolderIds' => [],
             'subfolders' => $subfolders,
             'accessibleFoldersCount' => $accessibleFoldersCount,
             'rootFoldersCount' => $rootFoldersCount,
@@ -118,8 +127,15 @@ class FolderController extends Controller
             ? collect()
             : $folder->children()
                 ->whereIn('id', $accessibleIds)
+                ->withCount([
+                    'documents as active_documents_count' => static fn ($query) => $query->whereNull('deleted_at'),
+                    'children as accessible_children_count' => static fn ($query) => $query->whereIn('id', $accessibleIds),
+                ])
                 ->orderBy('name')
                 ->get();
+
+        $folderTree = $this->buildAccessibleTree($accessibleIds);
+        $expandedFolderIds = $this->extractAncestorIds($folder);
 
         $documents = $folder->documents()
             ->active()
@@ -155,6 +171,8 @@ class FolderController extends Controller
 
         return view('folders.show', [
             'currentFolder' => $folder,
+            'folderTree' => $folderTree,
+            'expandedFolderIds' => $expandedFolderIds,
             'breadcrumbs' => $breadcrumbs,
             'subfolders' => $subfolders,
             'documents' => $documents,
@@ -431,6 +449,47 @@ class FolderController extends Controller
         return $path !== ''
             ? array_values(array_map('intval', explode('/', $path)))
             : [(int) $folder->id];
+    }
+
+    /**
+     * Construye en memoria el árbol jerárquico de carpetas autorizadas sin consultas N+1.
+     *
+     * @param  array<int, int>  $accessibleIds
+     */
+    private function buildAccessibleTree(array $accessibleIds): Collection
+    {
+        if ($accessibleIds === []) {
+            return collect();
+        }
+
+        $folders = Folder::query()
+            ->whereIn('id', $accessibleIds)
+            ->withCount([
+                'documents as active_documents_count' => static fn ($query) => $query->whereNull('deleted_at'),
+                'children as accessible_children_count' => static fn ($query) => $query->whereIn('id', $accessibleIds),
+            ])
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name', 'path']);
+
+        $byId = $folders->keyBy('id');
+        $childrenByParent = [];
+        $roots = [];
+
+        foreach ($folders as $folder) {
+            $parentId = $folder->parent_id !== null ? (int) $folder->parent_id : null;
+            if ($parentId !== null && $byId->has($parentId)) {
+                $childrenByParent[$parentId][] = $folder;
+            } else {
+                $roots[] = $folder;
+            }
+        }
+
+        foreach ($folders as $folder) {
+            $children = collect($childrenByParent[(int) $folder->id] ?? []);
+            $folder->setRelation('treeChildren', $children);
+        }
+
+        return collect($roots);
     }
 
     private function formatStorageSize(int $bytes): string

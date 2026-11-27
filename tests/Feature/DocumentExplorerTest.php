@@ -366,4 +366,64 @@ class DocumentExplorerTest extends TestCase
         $this->assertNotNull($own->json('id'));
         $this->assertNotNull($denied->json('id'));
     }
+
+    public function test_two_panel_hierarchical_folder_tree_respects_deny_auto_expands_and_shows_counts(): void
+    {
+        Storage::fake('local');
+
+        $admin = $this->createUserWithRole('Administrador');
+        $colaborador = $this->createUserWithRole('Colaborador');
+
+        $sgi = Folder::create(['name' => 'SGI', 'created_by' => $admin->id]);
+        $calidad = Folder::create(['name' => 'Calidad', 'parent_id' => $sgi->id, 'created_by' => $admin->id]);
+        $procedimientos = Folder::create(['name' => 'Procedimientos', 'parent_id' => $calidad->id, 'created_by' => $admin->id]);
+        $restringida = Folder::create(['name' => 'Auditoria Interna', 'parent_id' => $sgi->id, 'created_by' => $admin->id]);
+
+        $this->permissions->grantAccess($sgi, $colaborador, $admin);
+        $this->permissions->denyAccess($restringida, $colaborador, $admin);
+
+        // Subir un documento activo y uno enviado a papelera dentro de Procedimientos.
+        $this->actingAs($admin)->postJson(route('documents.store', $procedimientos), [
+            'file' => UploadedFile::fake()->create('PR-01.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $trashed = $this->actingAs($admin)->postJson(route('documents.store', $procedimientos), [
+            'file' => UploadedFile::fake()->create('Obsoleto.pdf', 10, 'application/pdf'),
+        ])->assertCreated();
+        $this->actingAs($admin)->delete(route('documents.destroy', $trashed->json('id')))->assertRedirect();
+
+        // En index (raíz): Admin ve el árbol, el filtro, ubicación Raíz y 2 subcarpetas en SGI.
+        $this->actingAs($admin)
+            ->get(route('folders.index'))
+            ->assertOk()
+            ->assertSee('Estructura de carpetas')
+            ->assertSee('Filtrar carpeta...')
+            ->assertSee('Ubicación:</span> Raíz', false)
+            ->assertSee('2 subcarpetas')
+            ->assertSee('0 archivos');
+
+        // Colaborador en index ve solo 1 subcarpeta accesible bajo SGI (excluye Auditoria Interna con DENY).
+        $this->actingAs($colaborador)
+            ->get(route('folders.index'))
+            ->assertOk()
+            ->assertSee('1 subcarpeta')
+            ->assertDontSee('Auditoria Interna');
+
+        // Al abrir Calidad como Colaborador:
+        // - Muestra árbol con SGI -> Calidad -> Procedimientos, auto-expande rama y resalta Calidad.
+        // - Excluye Auditoria Interna (DENY) del árbol y del listado.
+        // - Modal de nueva carpeta muestra ubicación jerárquica completa y conteo de archivos activos = 1.
+        $response = $this->actingAs($colaborador)->get(route('folders.show', $calidad));
+
+        $response->assertOk()
+            ->assertSee('Estructura de carpetas')
+            ->assertSee('sdr-folder-tree', false)
+            ->assertSee('SGI')
+            ->assertSee('Calidad')
+            ->assertSee('Procedimientos')
+            ->assertDontSee('Auditoria Interna')
+            ->assertSee('Ubicación:</span> SGI / Calidad', false)
+            ->assertSee('0 subcarpetas')
+            ->assertSee('1 archivo')
+            ->assertViewHas('expandedFolderIds', [$sgi->id, $calidad->id]);
+    }
 }

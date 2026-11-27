@@ -1485,3 +1485,151 @@ input[type="file"].form-control::file-selector-button {
 .dark-mode .ta-auth-logo-wrap {
   background: transparent;
 }
+
+/* ---------- Árbol Jerárquico de Carpetas (Explorador SGI) ---------- */
+.sdr-tree-body {
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.sdr-tree-root,
+.sdr-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sdr-tree-children {
+  margin-left: 0.95rem;
+  padding-left: 0.6rem;
+  border-left: 1px dashed var(--sdr-border-color);
+}
+
+.sdr-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 2px;
+}
+
+.sdr-tree-toggle {
+  width: 22px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ta-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sdr-tree-toggle:hover {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.sdr-tree-chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.sdr-tree-spacer {
+  width: 22px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.sdr-tree-link {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.36rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--ta-text-body);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sdr-tree-link:hover {
+  background-color: var(--ta-bg-hover);
+  color: var(--ta-text-primary);
+}
+
+.sdr-tree-icon {
+  color: var(--ta-text-muted);
+  flex-shrink: 0;
+}
+
+.sdr-tree-link:hover .sdr-tree-icon {
+  color: #1d4ed8;
+}
+
+.sdr-tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sdr-tree-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background-color: var(--sdr-surface-subtle);
+  border: 1px solid var(--sdr-border-color);
+  color: var(--ta-text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sdr-tree-link.is-active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.sdr-tree-link.is-active .sdr-tree-icon {
+  color: #1d4ed8;
+}
+
+.sdr-tree-link.is-active .sdr-tree-count {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .sdr-tree-link.is-active,
+[data-bs-theme="dark"] .sdr-tree-link.is-active,
+.dark-mode .sdr-tree-link.is-active {
+  background-color: rgba(29, 78, 216, 0.24);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .sdr-tree-link.is-active .sdr-tree-icon,
+[data-bs-theme="dark"] .sdr-tree-link.is-active .sdr-tree-icon,
+.dark-mode .sdr-tree-link.is-active .sdr-tree-icon {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .sdr-tree-link.is-active .sdr-tree-count,
+[data-bs-theme="dark"] .sdr-tree-link.is-active .sdr-tree-count,
+.dark-mode .sdr-tree-link.is-active .sdr-tree-count {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}

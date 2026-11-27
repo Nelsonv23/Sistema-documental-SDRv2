@@ -124,6 +124,17 @@
         </div>
     </div>
 
+    {{-- Explorador de dos paneles: Árbol jerárquico izquierda + Contenido derecha --}}
+    <div class="row g-3">
+        <div class="col-12 col-lg-4 col-xl-3">
+            @include('folders.partials.tree-panel', [
+                'folderTree' => $folderTree,
+                'currentFolder' => $currentFolder,
+                'expandedFolderIds' => $expandedFolderIds,
+            ])
+        </div>
+
+        <div class="col-12 col-lg-8 col-xl-9">
     {{-- Zona de subida múltiple Alpine.js (máx. 2 concurrentes, 1 archivo por petición, reintentos silenciosos) --}}
     @if ($currentFolder && auth()->user()->can('create', [App\Models\Document::class, $currentFolder]))
         <div class="ta-card mb-4"
@@ -295,6 +306,10 @@
                     </thead>
                     <tbody>
                         @foreach ($subfolders as $subfolder)
+                            @php
+                                $childFoldersCount = (int) ($subfolder->accessible_children_count ?? 0);
+                                $childDocsCount = (int) ($subfolder->active_documents_count ?? 0);
+                            @endphp
                             <tr>
                                 <td>
                                     <a href="{{ route('folders.show', $subfolder) }}" class="fw-semibold d-inline-flex align-items-center gap-2" style="color: var(--ta-text-primary);">
@@ -302,7 +317,14 @@
                                         <span>{{ $subfolder->name }}</span>
                                     </a>
                                 </td>
-                                <td><span class="ta-badge ta-badge-brand">Carpeta</span></td>
+                                <td>
+                                    <span class="ta-badge ta-badge-brand me-1">
+                                        {{ $childFoldersCount }} {{ $childFoldersCount === 1 ? 'subcarpeta' : 'subcarpetas' }}
+                                    </span>
+                                    <span class="ta-badge ta-badge-neutral">
+                                        {{ $childDocsCount }} {{ $childDocsCount === 1 ? 'archivo' : 'archivos' }}
+                                    </span>
+                                </td>
                                 <td style="color: var(--ta-text-muted);">—</td>
                                 <td style="color: var(--ta-text-muted);">{{ $subfolder->updated_at?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end">
@@ -380,9 +402,16 @@
             @endif
         @endif
     </div>
+        </div>
+    </div>
 
     {{-- Modal: Nueva carpeta --}}
     @if (($currentFolder && auth()->user()->can('create', [App\Models\Folder::class, $currentFolder])) || (! $currentFolder && auth()->user()->can('createRoot', App\Models\Folder::class)))
+        @php
+            $newFolderLocation = $currentFolder
+                ? ($breadcrumbs->isNotEmpty() ? $breadcrumbs->pluck('folder.name')->implode(' / ') : $currentFolder->name)
+                : 'Raíz';
+        @endphp
         <div class="modal fade" id="newFolderModal" tabindex="-1" aria-labelledby="newFolderModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <form method="POST" action="{{ route('folders.store') }}" class="modal-content">
@@ -397,6 +426,9 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
+                        <div class="rounded-3 px-3 py-2 mb-3 small" style="background-color: var(--sdr-surface-subtle); border: 1px solid var(--sdr-border-color); color: var(--ta-text-body);">
+                            <span class="fw-semibold" style="color: var(--ta-text-primary);">Ubicación:</span> {{ $newFolderLocation }}
+                        </div>
                         <label for="new_folder_name" class="form-label">Nombre de la carpeta</label>
                         <input id="new_folder_name"
                                type="text"
