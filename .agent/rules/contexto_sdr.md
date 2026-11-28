@@ -11,8 +11,8 @@ Nelson es nuevo en desarrollo asistido por IA/agentes. Sigue siempre estas pauta
 ---
 
 #### Estado actual del proyecto (checkpoint inicial SDR v2)
-Última actualización: proyecto nuevo limpio por iniciar.
-**Entorno local:** Laragon en Windows, PHP 8.4.25 (NTS, vía FastCGI con Apache), MySQL 8.0.30, Apache 2.4.54. Nuevo proyecto en `C:\Users\NELSON\Desktop\laragon\www\sdr-v2` (dominio local `http://sdr-v2.test`).
+La fuente viva del avance diario, inventario de módulos implementados, entornos y siguientes pasos se mantiene en `SDR_PROYECTO_ESTADO_ACTUAL.md` (y su resumen de decisiones cerradas en `CLAUDE.md`).
+**Entorno local:** Laragon en Windows, PHP 8.4.25 (NTS, vía FastCGI con Apache), MySQL 8.0.30, Apache 2.4.54. Proyecto en `C:\Users\NELSON\Desktop\laragon\www\sdr-v2` (dominio local `http://sdr-v2.test`).
 **Stack base a instalar (composer):**
 * `laravel/laravel` v13.x
 * `spatie/laravel-permission` v8.x
